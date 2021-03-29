@@ -68,8 +68,8 @@ if not os.path.exists(envID_file) or not os.path.exists(confID_file):
     sleep(3)
     os.system('qtcreator&')
     out = ''
-    while 'qtcreator' not in out:
-        out = check_output(['ps','-A'], encoding='UTF-8')
+    
+    while not os.path.exists(envID_file) or not os.path.exists(confID_file):
         sleep(1)
     sleep(5)
     os.system('killall qtcreator')
