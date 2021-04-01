@@ -151,11 +151,13 @@ for ws in $ros2_workspaces; do
     register_ros_workspace $ws
 done
 
+cd $ws
 local cmd="colcon build --symlink-install $@"
 if [ -d "src/ros1_bridge" ]; then
     cmd="$cmd  --packages-skip ros1_bridge"
 fi
 eval $cmd
+cd $PWD
 ros2ws
 }
 
