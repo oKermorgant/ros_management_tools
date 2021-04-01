@@ -152,7 +152,7 @@ for ws in $ros2_workspaces; do
 done
 
 cd $ws
-local cmd="colcon build --symlink-install $@"
+local cmd="colcon build --symlink-install --continue-on-error $@"
 if [ -d "src/ros1_bridge" ]; then
     cmd="$cmd  --packages-skip ros1_bridge"
 fi
@@ -206,5 +206,5 @@ for ws in "$ros2_workspaces"; do
        fi
     fi
 done
-colcon build --symlink-install --packages-select ros1_bridge --cmake-force-configure
+colcon build --symlink-install --packages-select ros1_bridge --cmake-force-configure --continue-on-error
 }
