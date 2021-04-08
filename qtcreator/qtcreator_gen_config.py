@@ -4,7 +4,7 @@ import sys
 import os
 from shutil import rmtree
 from time import localtime, sleep
-from subprocess import check_output
+from subprocess import check_output, Popen
 import argparse
 
 try:
@@ -63,19 +63,7 @@ cmake_file = cmake_dir + '/CMakeLists.txt'
 cmake_user = cmake_file + '.user'
 build_dir = os.path.abspath(cmake_dir + '/' + args.b)
 
-if not os.path.exists(envID_file) or not os.path.exists(confID_file):
-    print('Will run QtCreator once to generate local configuration')
-    sleep(3)
-    os.system('qtcreator&')
-    out = ''
-    
-    while not os.path.exists(envID_file) or not os.path.exists(confID_file):
-        sleep(1)
-    sleep(5)
-    os.system('killall qtcreator')
-    #print('Please run QtCreator at least once before automatic configuration')
-    #sys.exit(0)
-    
+   
 class Version:
     def __init__(self, s):
         self.s = self.split(s)
@@ -98,15 +86,39 @@ class Version:
             if self.s[i] < s[i]:
                 return False
         return True
-        
-# get ID's on this computer and Qt Creator version
-with open(envID_file) as f:
-    envID = f.read().split('Settings\EnvironmentId=@ByteArray(')[1].split(')')[0]
-with open(confID_file) as f:
-    data = f.read()
-    confID = data.split('<value type="QString" key="PE.Profile.Id">')[1].split('<')[0]
-    qtcVersion = Version(data.split('<!-- Written by QtCreator ')[1].split(', ')[0])
+    
+    
+# get ID's on this computer and Qt Creator version    
+def readConfig():
+    with open(envID_file) as f:
+        envID = f.read().split('Settings\EnvironmentId=@ByteArray(')[1].split(')')[0]
+    with open(confID_file) as f:
+        data = f.read()
+        confID = data.split('<value type="QString" key="PE.Profile.Id">')[1].split('<')[0]
+        qtcVersion = Version(data.split('<!-- Written by QtCreator ')[1].split(', ')[0])
+    return envID, confID, qtcVersion
 
+qt_proc = None
+    
+while True:
+    
+    if qt_proc is None and (not os.path.exists(envID_file) or not os.path.exists(confID_file)):
+        print('Will run QtCreator once to generate local configuration')
+        sleep(3)
+        qt_proc = Popen(['qtcreator','&'], shell=False)
+    
+    try:
+        envID, confID, qtcVersion = readConfig()
+        break
+    except:
+        sleep(1)
+
+if qt_proc is not None:
+    try:
+        qt_proc.kill()
+        qt_proc.communicate()
+    except: pass
+            
 if not os.path.exists(cmake_file):
     print('Could not find CMakeLists.txt, exiting')
     print('Given location: ' + cmake_file)
