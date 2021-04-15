@@ -106,10 +106,11 @@ for ws in $ros1_workspaces
 do
     register_ros_workspace $ws
 done
-# change prompt (actually not by default)
+# change prompt if you like (actually not by default)
 local ROS1_COLOR="29"   # noetic green
 export PS1="$PS1_ori"
-source /usr/share/gazebo/setup.sh
+# PS1="\e[38;5;${ROS1_COLOR}m[ROS1] $PS1_ori"
+# source /usr/share/gazebo/setup.sh
 }
 
 # Activate ROS 2 ws
@@ -128,7 +129,7 @@ done
 # change prompt
 local ROS2_COLOR="166"  # foxy orange
 export PS1="\e[38;5;${ROS2_COLOR}m[ROS2] $PS1_ori"
-source /usr/share/gazebo/setup.sh
+# source /usr/share/gazebo/setup.sh
 }
 
 # some shortcuts
@@ -143,9 +144,9 @@ unset AMENT_CURRENT_PREFIX
 unset COLCON_PREFIX_PATH
 
 local ws
-local PWD=$(pwd)
+local PWD="$(pwd)/"
 for ws in $ros2_workspaces; do
-    if [[ "$ws" = "$PWD"* ]]; then
+    if [[ "${ws}/" = "$PWD"* ]]; then
       break
     fi
     register_ros_workspace $ws
