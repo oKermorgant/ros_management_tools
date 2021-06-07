@@ -187,6 +187,7 @@ def is_ros_ws(path):
         
 # check build directory - update if ROS unless manually set
 bin_dir = build_dir
+install_dir = '/usr/local'
 if ros and not '-b' in sys.argv:
     ros_dir = os.path.abspath(cmake_dir + '/..')
     while not is_ros_ws(ros_dir):
@@ -196,6 +197,7 @@ if ros and not '-b' in sys.argv:
             sys.exit(0)      
     build_dir = ros_dir + '/build/' + package
     bin_dir = ros_dir + '/devel/.private/' + package + '/lib'
+    install_dir = ros_dir + '/install/' + package
     if ros == 2:
         bin_dir = build_dir
     if not os.path.exists(build_dir):
@@ -241,6 +243,7 @@ replace_dict['<gen_envID/>'] = envID
 replace_dict['<gen_cmake_dir/>'] = cmake_dir
 replace_dict['<gen_cmake_build_type/>'] = build_type
 replace_dict['<gen_build_dir/>'] = build_dir
+replace_dict['<gen_install_dir/>'] = install_dir
 replace_dict['<gen_conf/>'] = confID
 replace_dict['<gen_target_count/>'] = str(len(targets))
 config = dict_replace(config, replace_dict)
