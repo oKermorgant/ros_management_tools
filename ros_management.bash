@@ -14,7 +14,7 @@ export ros1_workspaces="${ros1_workspaces//'~'/$HOME}"
 export ros2_workspaces="${ros2_workspaces//'~'/$HOME}"
 export PS1_ori=$PS1
 
-remove_paths()
+ros_management_remove_paths()
 {
 IFS=':' read -ra PATHES <<< "$1"
 local THISPATH=""
@@ -37,18 +37,18 @@ echo $THISPATH | cut -c2-
 
 # Takes a list of sub-paths
 # Updates ROS-related system paths by removing all elements containing sub-paths
-remove_all_paths()
+ros_management_remove_all_paths()
 {
-    export AMENT_PREFIX_PATH=$(remove_paths "$AMENT_PREFIX_PATH" $@)
-    export AMENT_CURRENT_PREFIX=$(remove_paths "$AMENT_CURRENT_PREFIX" $@)
-    export PYTHONPATH=$(remove_paths "$PYTHONPATH" $@)
-    export CMAKE_PREFIX_PATH=$(remove_paths "$CMAKE_PREFIX_PATH" $@)
-    export PATH=$(remove_paths "$PATH" $@)
-    export LD_LIBRARY_PATH=$(remove_paths "$LD_LIBRARY_PATH" $@)
+    export AMENT_PREFIX_PATH=$(ros_management_remove_paths "$AMENT_PREFIX_PATH" $@)
+    export AMENT_CURRENT_PREFIX=$(ros_management_remove_paths "$AMENT_CURRENT_PREFIX" $@)
+    export PYTHONPATH=$(ros_management_remove_paths "$PYTHONPATH" $@)
+    export CMAKE_PREFIX_PATH=$(ros_management_remove_paths "$CMAKE_PREFIX_PATH" $@)
+    export PATH=$(ros_management_remove_paths "$PATH" $@)
+    export LD_LIBRARY_PATH=$(ros_management_remove_paths "$LD_LIBRARY_PATH" $@)
 }
 
 # Register a single ROS 1 / 2 workspace, try to source in order : ws > ws/install > ws/devel
-register_ros_workspace()
+ros_management_register_workspace()
 {
 local subs="/ /install/ /devel/"
 local sub
@@ -93,18 +93,18 @@ echo "Could not find package $1"
 ros1ws()
 {
 # Clean ROS 2 paths
-remove_all_paths $ros2_workspaces
+ros_management_remove_all_paths $ros2_workspaces
 unset ROS_DISTRO
 
 # register ROS 1 workspaces
 local ws
 for ws in $ros1_workspaces
 do
-    register_ros_workspace $ws
+    ros_management_register_workspace $ws
 done
 for ws in $ros1_workspaces
 do
-    register_ros_workspace $ws
+    ros_management_register_workspace $ws
 done
 # change prompt if you like (actually not by default)
 local ROS1_COLOR="29"   # noetic green
@@ -117,14 +117,14 @@ source /usr/share/gazebo/setup.sh
 ros2ws()
 {
 # Clean ROS 1 paths
-remove_all_paths $ros1_workspaces
+ros_management_remove_all_paths $ros1_workspaces
 unset ROS_DISTRO
 
 # register ROS 2 workspaces
 local ws
 for ws in $ros2_workspaces
 do
-    register_ros_workspace $ws
+    ros_management_register_workspace $ws
 done
 # change prompt
 local ROS2_COLOR="166"  # foxy orange
@@ -136,7 +136,7 @@ source /usr/share/gazebo/setup.sh
 colbuild()
 {
 # Clean ROS 1 paths
-remove_all_paths $ros1_workspaces
+ros_management_remove_all_paths $ros1_workspaces
 unset ROS_DISTRO
 # source ROS 2 ws up to this one
 unset AMENT_PREFIX_PATH
@@ -149,7 +149,7 @@ for ws in $ros2_workspaces; do
     if [[ "$PWD" = "$ws/"* ]]; then
       break
     fi
-    register_ros_workspace $ws
+    ros_management_register_workspace $ws
 done
 
 local cmd="colcon build --symlink-install --continue-on-error $@"
@@ -176,7 +176,7 @@ if [ ! -d "src/ros1_bridge" ]; then
     return
 fi
 # clean environment variables
-remove_all_paths "$ros1_workspaces $ros2_workspaces"
+ros_management_remove_all_paths "$ros1_workspaces $ros2_workspaces"
 unset ROS_DISTRO
 # register ROS 2 overlays before the ros1_bridge overlay
 colbuild
@@ -184,17 +184,17 @@ colbuild
 # register base ROS 1 installation
 unset ROS_DISTRO
 local ros1_base=${ros1_workspaces% *}
-register_ros_workspace $ros1_base
+ros_management_register_workspace $ros1_base
 # register base ROS 2 installation
 unset ROS_DISTRO
 local ros2_base=${ros2_workspaces% *}
-register_ros_workspace $ros2_base
+ros_management_register_workspace $ros2_base
 
 # register ROS 1 overlays
 unset ROS_DISTRO
 for ws in $ros1_workspaces; do
     if [[ "$ws" != "$ros1_base" ]]; then
-        register_ros_workspace $ws
+        ros_management_register_workspace $ws
     fi
 done
 
@@ -202,7 +202,7 @@ done
 unset ROS_DISTRO
 for ws in "$ros2_workspaces"; do
     if [[ "$ws" != "$ros2_base" ]]; then
-       register_ros_workspace $ws
+       ros_management_register_workspace $ws
        if [[ "$ws" = "$bridge_overlay"* ]]; then
        break
        fi

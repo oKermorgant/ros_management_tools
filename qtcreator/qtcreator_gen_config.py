@@ -143,9 +143,44 @@ with open(cmake_file) as f:
 package = ''
 targets = []
 build_type = 'Debug'
-ros = 0
 
-print('Loading ' + os.path.abspath(cmake_file))
+class RosBuild:
+    version = None
+    tool = ''
+    @staticmethod
+    def find_ws_root(ros_dir):
+
+        while True:
+            ros_dir = os.path.dirname(ros_dir)
+            
+            if ros_dir == '/':
+                return None
+            
+            if 'src' in os.listdir(ros_dir):
+                # try to identify build tool
+                if os.path.exists(f'{ros_dir}/build/COLCON_IGNORE'):                    
+                    RosBuild.tool = 'colcon'
+                elif os.path.exists(f'{ros_dir}/.catkin_tools'):
+                    RosBuild.tool = 'catkin'
+                break
+                
+        if RosBuild.tool:
+            print(f'Configuring for ROS {RosBuild.version} workspace compiled through {RosBuild.tool}')
+        else:
+            RosBuild.tool = ['catkin','colcon'][RosBuild.version-1]
+            print(f'Could not identify build tool, picking {RosBuild.tool} for ROS {RosBuild.version}')        
+        return ros_dir
+    
+    @staticmethod
+    def get_dirs(package):
+        build_dir = ros_dir + '/build/' + package
+        bin_dir = ros_dir + '/devel/.private/' + package + '/lib'
+        install_dir = ros_dir + '/install/' + package
+        if RosBuild.tool == 'colcon':
+            bin_dir = build_dir
+        return build_dir, bin_dir, install_dir
+
+print('Loading ' + os.path.abspath(cmake_file) + '\n')
 
 has_lib = False
 for line in cmake:
@@ -164,47 +199,30 @@ for line in cmake:
     elif 'CMAKE_BUILD_TYPE' in line:
         build_type = extract(line)
     elif 'catkin_package' in line:
-        if ros == 0:
-            print('Configuring as ROS 1 package')
-        ros = 1
+        if not RosBuild.version:
+            RosBuild.version = 1
     elif 'ament_package' in line:
-        if ros == 0:
-            print('Configuring as ROS 2 package')
-        ros = 2
-        
+        if not RosBuild.version:
+            RosBuild.version = 2
+                
 if len(targets) == 0 and not has_lib:
     print('  no C++ targets for ' + package)
-    
-def is_ros_ws(path):
-    if ros == 1:
-        sig = ('devel/setup.bash', 'src')
-    else:
-        sig = ('install/setup.bash', 'src')
-    for s in sig:
-        if not os.path.exists(path + '/' + s):
-            return False
-    return True
-        
+            
 # check build directory - update if ROS unless manually set
 bin_dir = build_dir
 install_dir = '/usr/local'
-if ros and not '-b' in sys.argv:
-    ros_dir = os.path.abspath(cmake_dir + '/..')
-    while not is_ros_ws(ros_dir):
-        ros_dir = os.path.abspath(ros_dir + '/..')
-        if ros_dir in ('/', '//'):
-            print('This ROS package does not seem to be in any workspace, exiting')
-            sys.exit(0)      
-    build_dir = ros_dir + '/build/' + package
-    bin_dir = ros_dir + '/devel/.private/' + package + '/lib'
-    install_dir = ros_dir + '/install/' + package
-    if ros == 2:
-        bin_dir = build_dir
+
+if RosBuild.version and not '-b' in sys.argv:
+        
+    ros_dir = RosBuild.find_ws_root(os.path.abspath(cmake_dir))
+    if ros_dir is None:
+        print('This ROS package does not seem to be in any workspace, exiting')
+        sys.exit(0)
+     
+    build_dir, bin_dir, install_dir = RosBuild.get_dirs(package)
+    
     if not os.path.exists(build_dir):
-        if ros == 1:
-            print('You will have to run "catkin build" before loading the project in Qt Creator')
-        else:
-            print('You will have to run "colcon build" before loading the project in Qt Creator')
+        print(f'You will have to run "{RosBuild.tool} build" before loading the project in Qt Creator')
 elif not os.path.exists(build_dir):
     os.mkdir(build_dir)
 elif args.clean:
