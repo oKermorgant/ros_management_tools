@@ -83,7 +83,9 @@ class Version:
     def __ge__(self, s):
         s = self.split(s)
         for i in range(3):
-            if self.s[i] < s[i]:
+            if self.s[i] > s[i]:
+                return True
+            elif self.s[i] < s[i]:
                 return False
         return True
     
