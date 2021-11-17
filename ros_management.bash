@@ -167,6 +167,50 @@ fi
 ros2ws
 }
 
+# restrict fastrtps / Cyclone DDS to this network interface
+rmw_restrict()
+{
+
+# if interface is given, update file
+if [[ $# -eq 1 ]]; then
+
+    # fastRTPS https://fast-dds.docs.eprosima.com/en/latest/fastdds/transport/whitelist.html
+    echo "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>
+    <profiles xmlns=\"http://www.eprosima.com/XMLSchemas/fastRTPS_Profiles\">
+        <transport_descriptors>
+            <transport_descriptor>
+                <transport_id>CustomUDPTransport</transport_id>
+                <type>UDPv4</type>
+                <interfaceWhiteList>
+                    <address>$1</address>
+                </interfaceWhiteList>
+            </transport_descriptor>
+        </transport_descriptors>
+        <participant profile_name=\"CustomUDPTransportParticipant\">
+            <rtps>
+                <userTransports>
+                    <transport_id>CustomUDPTransport</transport_id>
+                </userTransports>
+            </rtps>
+        </participant>
+    </profiles>" > /tmp/fastrtps_interface_restriction.xml
+
+    # Cyclone DDS https://dds-demonstrators.readthedocs.io/en/latest/Teams/1.Hurricane/setupCycloneDDS.html
+    echo " <?xml version=\"1.0\" encoding=\"UTF-8\" ?>
+    <CycloneDDS xmlns=\"https://cdds.io/config\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"https://cdds.io/config https://raw.githubusercontent.com/eclipse-cyclonedds/cyclonedds/master/etc/cyclonedds.xsd\">
+        <Domain id=\"any\">
+            <General>
+                <NetworkInterfaceAddress>$1</NetworkInterfaceAddress>
+            </General>
+        </Domain>
+    </CycloneDDS>" > /tmp/cyclonedds_interface_restriction.xml
+fi
+
+# in all case, source these files
+export FASTRTPS_DEFAULT_PROFILES_FILE=/tmp/fastrtps_interface_restriction.xml
+export CYCLONEDDS_URI=/tmp/cyclonedds_interface_restriction.xml
+}
+
 # shortcut to be sure where we are
 alias rosd='echo $ROS_DISTRO'
 
