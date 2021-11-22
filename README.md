@@ -13,6 +13,16 @@ ros2ws  # activate ROS 2 / disable ROS 1
 ```
 The `ros1ws` and `ros2ws` functions also update the bash prompt to highlight the current distro in use.
 
+## Restrict ROS 2 to a network interface
+
+The function `rmw_restrict` takes a network interface and will only use this interface for ROS 2 (in this terminal).
+It is designed for fastRTPS and Cyclone DDS.
+
+```bash
+rmw_restrict wlan0  # only uses WiFi
+rmw_restrict        # (in another terminal): use last configuration, thus only use WiFi as well
+```
+
 ## QtCreator configuration
 
 The `qtcreator` folder includes a script to generate ad-hoc configuration files (raw CMake / ROS 1 / ROS 2) for this IDE.

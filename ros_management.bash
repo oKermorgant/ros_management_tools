@@ -258,3 +258,16 @@ for ws in "$ros2_workspaces"; do
 done
 colcon build --symlink-install --packages-select ros1_bridge --cmake-force-configure --continue-on-error
 }
+
+
+fastdds_server()
+{
+fastdds discovery --server-id 0
+}
+
+# enable fastdds discovery server if running
+if pgrep fast-discovery- > /dev/null
+then
+    export ROS_DISCOVERY_SERVER=127.0.0.1:11811
+#     echo "[ROS2] Enabling fast-discovery-server"
+fi
