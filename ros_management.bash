@@ -128,6 +128,10 @@ for ws in $ros2_workspaces
 do
     ros_management_register_workspace $ws
 done
+
+# add base ROS 1 libs in case some ROS 2 pkg need them
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/ros/noetic/lib
+
 # change prompt
 local ROS2_COLOR="166"  # foxy orange
 export PS1="\e[38;5;${ROS2_COLOR}m[ROS2] $PS1_ori"
