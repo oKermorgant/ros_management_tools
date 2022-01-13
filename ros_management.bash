@@ -146,6 +146,7 @@ colbuild()
 # Clean ROS 1 paths
 ros_management_remove_all_paths $ros1_workspaces
 unset ROS_DISTRO
+
 # source ROS 2 ws up to this one
 unset AMENT_PREFIX_PATH
 unset AMENT_CURRENT_PREFIX
@@ -154,21 +155,18 @@ unset COLCON_PREFIX_PATH
 local ws
 local PWD="$(pwd)/"
 for ws in $ros2_workspaces; do
+
+    # if in this workspace, run colcon
     if [[ "$PWD" = "$ws/"* ]]; then
-      break
+        local cmd="colcon build --symlink-install --continue-on-error $@"
+        if [ -d "$ws/src/ros1_bridge" ]; then
+            cmd="$cmd  --packages-skip ros1_bridge"
+        fi
+        (cd $ws;eval $cmd)
     fi
+    # source anyway
     ros_management_register_workspace $ws
 done
-
-local cmd="colcon build --symlink-install --continue-on-error $@"
-if [ -d "src/ros1_bridge" ]; then
-    cmd="$cmd  --packages-skip ros1_bridge"
-fi
-# cd $ws
-(ros2ws;cd $ws;eval $cmd)
-# eval $cmd
-# cd $PWD
-ros2ws
 }
 
 # restrict fastrtps / Cyclone DDS to this network interface
