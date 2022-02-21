@@ -150,21 +150,36 @@ class RosBuild:
     version = None
     tool = ''
     @staticmethod
-    def find_ws_root(ros_dir):
-
-        while True:
-            ros_dir = os.path.dirname(ros_dir)
-            
-            if ros_dir == '/':
+    def find_ws_root(pkg_dir):
+        
+        # find a 'src' directory in this tree
+        # if several, pick the one that also has a 'build' folder
+        
+        if '/src' not in pkg_dir:
+            print('The package path does not comply with ROS standard (no src folder)')
+            return None
+        
+        tree = pkg_dir.split('/src')
+        
+        ros_dir = tree[0]
+                
+        if len(tree) > 2:
+            # check it is the correct one            
+            for path in tree[1:]:                
+                if os.path.exists(f'{ros_dir}/build'):
+                    break
+                ros_dir += f'/src{path}'
+            else:
+                # no build directory, workspace is ambiguous
+                print('The package path is ambiguous (several src folders), cannot guess the workspace')
+                print('Compile (catkin or colcon) from the workspace then run this script again.')
                 return None
-            
-            if 'src' in os.listdir(ros_dir):
-                # try to identify build tool
-                if os.path.exists(f'{ros_dir}/build/COLCON_IGNORE'):                    
-                    RosBuild.tool = 'colcon'
-                elif os.path.exists(f'{ros_dir}/.catkin_tools'):
-                    RosBuild.tool = 'catkin'
-                break
+        
+        # try to identify build tool
+        if os.path.exists(f'{ros_dir}/build/COLCON_IGNORE'):                    
+            RosBuild.tool = 'colcon'
+        elif os.path.exists(f'{ros_dir}/.catkin_tools'):
+            RosBuild.tool = 'catkin'
                 
         if RosBuild.tool:
             print(f'Configuring for ROS {RosBuild.version} workspace compiled through {RosBuild.tool}')
@@ -218,13 +233,13 @@ if RosBuild.version and not '-b' in sys.argv:
         
     ros_dir = RosBuild.find_ws_root(os.path.abspath(cmake_dir))
     if ros_dir is None:
-        print('This ROS package does not seem to be in any workspace, exiting')
         sys.exit(0)
      
     build_dir, bin_dir, install_dir = RosBuild.get_dirs(package)
     
     if not os.path.exists(build_dir):
         print(f'You will have to run "{RosBuild.tool} build" before loading the project in Qt Creator')
+        
 elif not os.path.exists(build_dir):
     os.mkdir(build_dir)
 elif args.clean:
