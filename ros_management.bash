@@ -89,6 +89,12 @@ done
 echo "Could not find package $1"
 }
 
+# do a Bloom release for a given distro
+bloom-auto()
+{
+    bloom-release --ros-distro $1 --track $1 $(basename $PWD) $2
+}
+
 # Activate ROS 1 ws
 ros1ws()
 {
@@ -158,7 +164,17 @@ for ws in $ros2_workspaces; do
 
     # if in this workspace, run colcon
     if [[ "$PWD" = "$ws/"* ]]; then
-        local cmd="colcon build --symlink-install --continue-on-error $@"
+        local cmd="colcon build --symlink-install --continue-on-error"
+        # add all args, change -p to --packages-select
+        for arg in $@; do
+            if [[ "$arg" = "-p" ]]
+            then
+                cmd="$cmd --packages-select"
+            else
+                cmd="$cmd $arg"
+            fi
+        done
+
         if [ -d "$ws/src/ros1_bridge" ]; then
             cmd="$cmd  --packages-skip ros1_bridge"
         fi
@@ -176,7 +192,9 @@ rmw_restrict()
 # if interface is given, update file
 if [[ $# -eq 1 ]]; then
 
-    # fastRTPS https://fast-dds.docs.eprosima.com/en/latest/fastdds/transport/whitelist.html
+    # Fast-DDS https://fast-dds.docs.eprosima.com/en/latest/fastdds/transport/whitelist.html
+    # needs actual ip for this interface
+    ipinet="$(ip a s $1 | egrep -o 'inet [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}')"
     echo "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>
     <profiles xmlns=\"http://www.eprosima.com/XMLSchemas/fastRTPS_Profiles\">
         <transport_descriptors>
@@ -184,14 +202,32 @@ if [[ $# -eq 1 ]]; then
                 <transport_id>CustomUDPTransport</transport_id>
                 <type>UDPv4</type>
                 <interfaceWhiteList>
-                    <address>$1</address>
+                    <address>${ipinet##inet }</address>
                 </interfaceWhiteList>
             </transport_descriptor>
+            
+            <transport_descriptor>
+                <transport_id>CustomTcpTransport</transport_id>
+                <type>TCPv4</type>
+                <interfaceWhiteList>
+                    <address>${ipinet##inet }</address>
+                </interfaceWhiteList>
+            </transport_descriptor>
+            
         </transport_descriptors>
+        
         <participant profile_name=\"CustomUDPTransportParticipant\">
             <rtps>
                 <userTransports>
                     <transport_id>CustomUDPTransport</transport_id>
+                </userTransports>
+            </rtps>
+        </participant>
+        
+        <participant profile_name=\"CustomTcpTransportParticipant\">
+            <rtps>
+                <userTransports>
+                    <transport_id>CustomTcpTransport</transport_id>
                 </userTransports>
             </rtps>
         </participant>
@@ -210,7 +246,7 @@ fi
 
 # in all case, source these files
 export FASTRTPS_DEFAULT_PROFILES_FILE=/tmp/fastrtps_interface_restriction.xml
-export CYCLONEDDS_URI=/tmp/cyclonedds_interface_restriction.xml
+export CYCLONEDDS_URI=file:///tmp/cyclonedds_interface_restriction.xml
 }
 
 # shortcut to be sure where we are
