@@ -6,14 +6,125 @@
 # ROS 1 / 2 workspaces are defined in overlay ordering 
 # ex: ros1_workspaces="/opt/ros/noetic $HOME/ros_ws1 $HOME/ros_ws2"
 
-# Takes a path string separated with colons and a list of sub-paths
-# Removes path elements containing sub-paths
-
 # replace tilde by home dir in paths
 export ros1_workspaces="${ros1_workspaces//'~'/$HOME}"
 export ros2_workspaces="${ros2_workspaces//'~'/$HOME}"
 export PS1_ori=$PS1
 
+ROS_MANAGEMENT_INIT_FILE=~/.ros_management_auto_init
+
+# use auto-initialization from file if sourced with -k
+if [[ "$*" == *"-k"* ]]; then
+    ROS_MANAGEMENT_AUTO_INIT=1
+else
+    unset ROS_MANAGEMENT_AUTO_INIT
+    rm -rf $ROS_MANAGEMENT_INIT_FILE
+fi
+
+# modify prompt if sourced with -p
+if [[ "$*" == *"-p"* ]]; then
+    ROS_MANAGEMENT_PROMPT=1
+else
+    unset ROS_MANAGEMENT_PROMPT
+fi
+
+# add a command for the next auto-init
+ros_management_add()
+{
+    if [[ -z $ROS_MANAGEMENT_AUTO_INIT ]]; then
+        return
+    fi
+
+    if [[ ! -e $ROS_MANAGEMENT_INIT_FILE ]]; then
+        echo "$*" > $ROS_MANAGEMENT_INIT_FILE
+        return
+    fi
+    
+    local ros_history=$(<$ROS_MANAGEMENT_INIT_FILE)
+ 
+    # only valid commands are ros1ws vs ros2ws and any ros_ (exclusive)    
+    if [[ "$*" == *"ws" ]]; then
+        local updated=${ros_history/ros[12]ws/$*}
+    else
+        local updated=$(echo "$ros_history" | sed "s/ros_.*/$*/")
+    fi
+        
+    if [[ $updated != $ros_history ]]; then
+        echo "$updated" > $ROS_MANAGEMENT_INIT_FILE
+    else
+        if [[ "$updated" != *"$*"* ]]; then
+            echo "$*" >> $ROS_MANAGEMENT_INIT_FILE
+        fi
+    fi
+}
+
+# add ROS info to the prompt in order to know what version we use
+# also indicates on which robot we are working, if any
+ros_management_prompt()
+{
+    if [[ -z $ROS_MANAGEMENT_PROMPT ]] || [[ -z $ROS_DISTRO ]]; then
+        return
+    fi
+    
+    local token_color="\[\e[39m\]"
+    if [[ $ROS_DISTRO == "noetic" ]]; then
+        # actually we always disable the special prompt for ROS 1        
+        local DUMMY_LINE=1
+        #local ROS_COLOR="\[\e[38;5;17m\]"  # noetic green
+        #local ROS_PROMPT="${ROS_COLOR}[ROS1" 
+    else        
+        local ROS_COLOR="166"  # foxy orange
+        if [[ $ROS_DISTRO == "galactic" ]]; then
+            local ROS_COLOR="86" # galactic blue
+        fi
+        local ROS_COLOR="\[\e[38;5;${ROS_COLOR}m\]"
+        local ROS_PROMPT="${ROS_COLOR}[ROS2"
+    fi
+        
+    # split current PS1
+    if [[ "$PS1" =~ (.*\\\])(\[)(.*)(\]\\\[\\e\[0m\\\] )(.*) ]]; then
+        local cur_prompt=${BASH_REMATCH[3]}
+        # back to base PS1
+        PS1=${BASH_REMATCH[5]}
+        # extract current special token, if any
+        if [[ $cur_prompt == *"@"* ]]; then
+            if [[ "$cur_prompt" =~ (ROS[12])(\\\[.*\\\])(@)(.*)(\\\[.*) ]]; then
+                local token_color=${BASH_REMATCH[2]}
+                local token=${BASH_REMATCH[4]}                    
+            fi
+        else
+            # token only (ROS 1 not displayed)
+            local token_color=${BASH_REMATCH[1]}
+            local token=$cur_prompt      
+        fi        
+    fi
+    
+    if [[ "$1" != "__CLEAN" ]]; then
+        
+        if [[ $# -ne 0 ]]; then
+            # override token
+            local token=$1
+            if [[ $# -eq 2 ]]; then
+            # add this color
+                local token_color="\[\e[38;5;$2m\]"
+            fi
+        fi
+        if [[ ! -z $token ]]; then
+            if [[ -z $ROS_PROMPT ]]; then            
+                local ROS_PROMPT="${token_color}[$token"
+                unset ROS_COLOR
+            else
+                local ROS_PROMPT="$ROS_PROMPT${token_color}@$token"
+            fi
+        fi
+    fi
+    if [[ ! -z $ROS_PROMPT ]]; then
+        export PS1="$ROS_PROMPT${ROS_COLOR}]\[\e[0m\] $PS1"
+    fi
+}
+
+# Takes a path string separated with colons and a list of sub-paths
+# Removes path elements containing sub-paths
 ros_management_remove_paths()
 {
 IFS=':' read -ra PATHES <<< "$1"
@@ -112,13 +223,14 @@ for ws in $ros1_workspaces
 do
     ros_management_register_workspace $ws
 done
-# change prompt if you like (actually not by default)
-local ROS1_COLOR="29"   # noetic green
-export PS1="$PS1_ori"
-# PS1="\e[38;5;${ROS1_COLOR}m[ROS1] $PS1_ori"
+
 if [ -f /usr/share/gazebo/setup.sh ]; then
     source /usr/share/gazebo/setup.sh
 fi
+
+# change prompt if you like (actually not by default)
+ros_management_prompt
+ros_management_add ros1ws
 }
 
 # Activate ROS 2 ws
@@ -138,12 +250,15 @@ done
 # add base ROS 1 libs in case some ROS 2 pkg need them
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/ros/noetic/lib
 
-# change prompt
-local ROS2_COLOR="166"  # foxy orange
-export PS1="\e[38;5;${ROS2_COLOR}m[ROS2] $PS1_ori"
+
 if [ -f /usr/share/gazebo/setup.sh ]; then
     source /usr/share/gazebo/setup.sh
 fi
+
+
+# update ROS prompt
+ros_management_prompt
+ros_management_add ros2ws
 }
 
 # some shortcuts
@@ -186,11 +301,12 @@ done
 }
 
 # restrict fastrtps / Cyclone DDS to this network interface
-rmw_restrict()
+ros_restrict()
 {
-
-# if interface is given, update file
-if [[ $# -eq 1 ]]; then
+    if [[ $# -eq 0 ]]; then
+        echo "ros_restrict: give a network interface"
+        return
+    fi
 
     # Fast-DDS https://fast-dds.docs.eprosima.com/en/latest/fastdds/transport/whitelist.html
     # needs actual ip for this interface
@@ -242,11 +358,18 @@ if [[ $# -eq 1 ]]; then
             </General>
         </Domain>
     </CycloneDDS>" > /tmp/cyclonedds_interface_restriction.xml
-fi
 
-# in all case, source these files
-export FASTRTPS_DEFAULT_PROFILES_FILE=/tmp/fastrtps_interface_restriction.xml
-export CYCLONEDDS_URI=file:///tmp/cyclonedds_interface_restriction.xml
+    # tell where to look
+    export FASTRTPS_DEFAULT_PROFILES_FILE=/tmp/fastrtps_interface_restriction.xml
+    export CYCLONEDDS_URI=file:///tmp/cyclonedds_interface_restriction.xml
+
+    # we probably do not want to limit to localhost
+    unset ROS_LOCALHOST_ONLY
+
+    # only update history if raw call
+    if [[ $# -eq 1 ]]; then
+        ros_management_add ros_restrict $1
+    fi
 }
 
 # shortcut to be sure where we are
@@ -297,7 +420,6 @@ done
 colcon build --symlink-install --packages-select ros1_bridge --cmake-force-configure --continue-on-error
 }
 
-
 fastdds_server()
 {
 fastdds discovery --server-id 0
@@ -309,3 +431,78 @@ then
     export ROS_DISCOVERY_SERVER=127.0.0.1:11811
 #     echo "[ROS2] Enabling fast-discovery-server"
 fi
+
+
+
+# special functions for network setup on Centrale Nantes's robots
+
+ros_reset()
+{
+    # reset to standard network settings
+    unset ROS_IP
+    unset ROS_MASTER_URI
+    export ROS_LOCALHOST_ONLY=1
+    
+    unset ROS_DOMAIN_ID
+    unset FASTRTPS_DEFAULT_PROFILES_FILE
+    unset CYCLONEDDS_URI
+    
+    ros_management_prompt __CLEAN
+    ros_management_add ros_reset
+}
+
+ros_baxter()
+{
+    # ROS 1 uses Baxter's ROSMASTER through ethernet
+    ethernet_interface=$(ip link | awk -F: '$0 !~ "lo|vir|wl|^[^0-9]"{print $2;getline}')
+    export ROS_IP=$(ip addr show $ethernet_interface | grep "inet\b" | awk '{print $2}' | cut -d/ -f1)
+    export ROS_MASTER_URI=http://baxter.local:11311
+
+    # force ROS 2 on localhost, Baxter runs on ROS 1 anyway
+    export ROS_LOCALHOST_ONLY=1
+    unset FASTRTPS_DEFAULT_PROFILES_FILE
+    unset CYCLONEDDS_URI
+    
+    # prompt and store
+    ros_management_prompt baxter 124
+    ros_management_add ros_baxter
+}
+
+ros_turtle()
+{
+    if [[ $# -eq 0 ]]; then    
+        echo "Give a turtlebot number to setup ROS 2 connection"
+        return
+    fi
+    
+    # Domain ID depends on turtlebot
+    export ROS_DOMAIN_ID=$1
+
+    # force ROS 2 on wifi
+    wifi_interface=$(for dev in /sys/class/net/*; do [ -e "$dev"/wireless ] && echo ${dev##*/}; done)
+    ros_restrict $wifi_interface --nohistory
+    
+    # prompt and store
+    ros_management_prompt turtlebot$1 113
+    ros_management_add ros_turtle $1
+}
+
+# deal with history
+ros_management_init()
+{
+    # check if we are imposed a ROS version when sourcing this script            
+    if [[ "$*" =~ (.*)(-ros)([12])(.*) ]]; then
+        ROS_MANAGEMENT_VERSION="${BASH_REMATCH[3]}"
+        # source if no history
+        if [[ -z $ROS_MANAGEMENT_AUTO_INIT ]] || [[ ! -e $ROS_MANAGEMENT_INIT_FILE ]] || [[ -z $(grep '^ros[12]ws' $ROS_MANAGEMENT_INIT_FILE) ]]; then    
+            eval "ros${ROS_MANAGEMENT_VERSION}ws"
+        fi
+    fi
+
+    # eval history if requested
+    if [[ ! -z $ROS_MANAGEMENT_AUTO_INIT ]] && [[ -e $ROS_MANAGEMENT_INIT_FILE ]]; then
+        source $ROS_MANAGEMENT_INIT_FILE
+    fi
+}
+
+ros_management_init "'$*'"
