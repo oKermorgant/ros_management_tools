@@ -85,7 +85,7 @@ ros_management_prompt()
     if [[ "$PS1" =~ (.*\\\])(\[)(.*)(\]\\\[\\e\[0m\\\] )(.*) ]]; then
         local cur_prompt=${BASH_REMATCH[3]}
         # back to base PS1
-        PS1=${BASH_REMATCH[5]}
+        export PS1=${BASH_REMATCH[5]}
         # extract current special token, if any
         if [[ $cur_prompt == *"@"* ]]; then
             if [[ "$cur_prompt" =~ (ROS[12])(\\\[.*\\\])(@)(.*)(\\\[.*) ]]; then
@@ -94,8 +94,10 @@ ros_management_prompt()
             fi
         else
             # token only (ROS 1 not displayed)
-            local token_color=${BASH_REMATCH[1]}
-            local token=$cur_prompt      
+            if [[ $cur_prompt != "ROS2"* ]]; then
+                local token_color=${BASH_REMATCH[1]}
+                local token=$cur_prompt
+            fi
         fi        
     fi
     
@@ -108,7 +110,7 @@ ros_management_prompt()
             # add this color
                 local token_color="\[\e[38;5;$2m\]"
             fi
-        fi
+        fi                
         if [[ ! -z $token ]]; then
             if [[ -z $ROS_PROMPT ]]; then            
                 local ROS_PROMPT="${token_color}[$token"
