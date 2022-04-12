@@ -73,10 +73,14 @@ ros_management_prompt()
         #local ROS_COLOR="\[\e[38;5;17m\]"  # noetic green
         #local ROS_PROMPT="${ROS_COLOR}[ROS1" 
     else        
-        local ROS_COLOR="166"  # foxy orange
-        if [[ $ROS_DISTRO == "galactic" ]]; then
-            local ROS_COLOR="86" # galactic blue
-        fi
+        local ROS_COLOR=$(
+        case "$ROS_DISTRO" in
+            ("foxy") echo "166" ;;
+            ("galactic") echo "87" ;;
+            ("rolling") echo "40" ;;
+#             ("humble") echo "86" ;;        
+            (*) echo "255" ;;
+        esac)
         local ROS_COLOR="\[\e[38;5;${ROS_COLOR}m\]"
         local ROS_PROMPT="${ROS_COLOR}[ROS2"
     fi
