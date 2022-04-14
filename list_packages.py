@@ -4,6 +4,10 @@ from subprocess import Popen, check_output, PIPE
 import sys
 import argparse
 
+'''
+List packages installed for a ROS distro, list if they can be installed with another distro
+'''
+
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('-d','--distro', type=str, help='Any specific distro', default='')
 parser.add_argument('-r','--row', action='store_true', help='Display in row',default=False)
