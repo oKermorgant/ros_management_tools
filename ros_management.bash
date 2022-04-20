@@ -460,7 +460,8 @@ ros_reset()
 ros_baxter()
 {
     # ROS 1 uses Baxter's ROSMASTER through ethernet
-    ethernet_interface=$(ip link | awk -F: '$0 !~ "lo|vir|wl|^[^0-9]"{print $2;getline}')
+    local ethernet_interface=$(ip link | awk -F: '$0 !~ "lo|vir|wl|^[^0-9]"{print $2;getline}')
+    local ethernet_interface=$(for dev in $ethernet_interface; do [ ! -e /sys/class/net/"$dev"/wireless ] && echo ${dev##*/}; done)
     export ROS_IP=$(ip addr show $ethernet_interface | grep "inet\b" | awk '{print $2}' | cut -d/ -f1)
     export ROS_MASTER_URI=http://baxter.local:11311
 
