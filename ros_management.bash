@@ -171,6 +171,10 @@ local subs="/ /install/ /devel/"
 local sub
 for sub in $subs
 do
+    if [ -f "$1${sub}local_setup.bash" ]; then
+            source "$1${sub}local_setup.bash"
+        return
+    fi
     if [ -f "$1${sub}local_setup.sh" ]; then
             source "$1${sub}local_setup.sh"
         return
