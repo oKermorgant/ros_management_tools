@@ -62,7 +62,7 @@ ros_management_add()
 # also indicates on which robot we are working, if any
 ros_management_prompt()
 {
-    if [[ -z $ROS_MANAGEMENT_PROMPT ]] || [[ -z $ROS_DISTRO ]]; then
+    if [[ -z $ROS_MANAGEMENT_PROMPT ]] || [[ -z $(which rosversion) ]]; then
         return
     fi
     
