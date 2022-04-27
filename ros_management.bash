@@ -67,14 +67,15 @@ ros_management_prompt()
     fi
     
     local token_color="\[\e[39m\]"
-    if [[ $ROS_DISTRO == "noetic" ]]; then
+    local distro=$(rosversion -d)
+    if [[ $distro == "noetic" ]] || [[ $distro == "<unknown>" ]]; then
         # actually we always disable the special prompt for ROS 1        
         local DUMMY_LINE=1
         #local ROS_COLOR="\[\e[38;5;17m\]"  # noetic green
         #local ROS_PROMPT="${ROS_COLOR}[ROS1" 
     else        
         local ROS_COLOR=$(
-        case "$ROS_DISTRO" in
+        case "$distro" in
             ("foxy") echo "166" ;;
             ("galactic") echo "87" ;;
             ("rolling") echo "40" ;;
