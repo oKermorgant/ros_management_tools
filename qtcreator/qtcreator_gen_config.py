@@ -214,7 +214,7 @@ for line in cmake:
             if '$' not in target:
                 targets.append(target)
     elif 'CMAKE_BUILD_TYPE' in line:
-        build_type = extract(line)
+        build_type = extract(line).split()[-1]
     elif 'catkin_package' in line:
         if not RosBuild.version:
             RosBuild.version = 1
