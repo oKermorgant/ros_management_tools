@@ -11,11 +11,11 @@ export ros1_workspaces="${ros1_workspaces//'~'/$HOME}"
 export ros2_workspaces="${ros2_workspaces//'~'/$HOME}"
 export PS1_ori=$PS1
 
-ROS_MANAGEMENT_INIT_FILE=~/.ros_management_auto_init
+local ROS_MANAGEMENT_INIT_FILE=~/.ros_management_auto_init
 
 # use auto-initialization from file if sourced with -k
 if [[ "$*" == *"-k"* ]]; then
-    ROS_MANAGEMENT_AUTO_INIT=1
+    local ROS_MANAGEMENT_AUTO_INIT=1
 else
     unset ROS_MANAGEMENT_AUTO_INIT
     rm -rf $ROS_MANAGEMENT_INIT_FILE
@@ -23,7 +23,7 @@ fi
 
 # modify prompt if sourced with -p
 if [[ "$*" == *"-p"* ]]; then
-    ROS_MANAGEMENT_PROMPT=1
+    local ROS_MANAGEMENT_PROMPT=1
 else
     unset ROS_MANAGEMENT_PROMPT
 fi
