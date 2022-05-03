@@ -79,7 +79,7 @@ ros_management_prompt()
             ("foxy") echo "166" ;;
             ("galactic") echo "87" ;;
             ("rolling") echo "40" ;;
-#             ("humble") echo "86" ;;        
+            ("humble") echo "108" ;;
             (*) echo "255" ;;
         esac)
         local ROS_COLOR="\[\e[38;5;${ROS_COLOR}m\]"
