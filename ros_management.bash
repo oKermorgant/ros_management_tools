@@ -318,10 +318,20 @@ ros_restrict()
         echo "ros_restrict: give a network interface"
         return
     fi
+    
+    # auto-detect if basic name
+    local interface=$1
+    if [[ $1 == "WIFI" ]]; then
+        local interface=$(for dev in /sys/class/net/*; do [ -e "$dev"/wireless ] && echo ${dev##*/}; done)
+    fi
+    if [[ $1 == "ETH" ]]; then
+        local interface=$(ip link | awk -F: '$0 !~ "lo|vir|wl|^[^0-9]"{print $2;getline}')
+        local interface=$(for dev in $interface; do [ ! -e /sys/class/net/"$dev"/wireless ] && echo ${dev##*/}; done)
+    fi
 
     # Fast-DDS https://fast-dds.docs.eprosima.com/en/latest/fastdds/transport/whitelist.html
     # needs actual ip for this interface
-    ipinet="$(ip a s $1 | egrep -o 'inet [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}')"
+    ipinet="$(ip a s $interface | egrep -o 'inet [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}')"
     echo "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>
     <profiles xmlns=\"http://www.eprosima.com/XMLSchemas/fastRTPS_Profiles\">
         <transport_descriptors>
@@ -359,27 +369,19 @@ ros_restrict()
             </rtps>
         </participant>
     </profiles>" > /tmp/fastrtps_interface_restriction.xml
-
-    # Cyclone DDS https://dds-demonstrators.readthedocs.io/en/latest/Teams/1.Hurricane/setupCycloneDDS.html
-    echo " <?xml version=\"1.0\" encoding=\"UTF-8\" ?>
-    <CycloneDDS xmlns=\"https://cdds.io/config\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"https://cdds.io/config https://raw.githubusercontent.com/eclipse-cyclonedds/cyclonedds/master/etc/cyclonedds.xsd\">
-        <Domain id=\"any\">
-            <General>
-                <NetworkInterfaceAddress>$1</NetworkInterfaceAddress>
-            </General>
-        </Domain>
-    </CycloneDDS>" > /tmp/cyclonedds_interface_restriction.xml
-
     # tell where to look
     export FASTRTPS_DEFAULT_PROFILES_FILE=/tmp/fastrtps_interface_restriction.xml
-    export CYCLONEDDS_URI=file:///tmp/cyclonedds_interface_restriction.xml
+
+    # Cyclone DDS https://dds-demonstrators.readthedocs.io/en/latest/Teams/1.Hurricane/setupCycloneDDS.html
+    export CYCLONEDDS_URI="<General><NetworkInterfaceAddress>$interface"
 
     # we probably do not want to limit to localhost
     unset ROS_LOCALHOST_ONLY
 
-    # only update history if raw call
+    # only update history and prompt if raw call
     if [[ $# -eq 1 ]]; then
-        ros_management_add ros_restrict $1
+        ros_management_add ros_restrict $interface
+        ros_management_prompt $interface 15       
     fi
 }
 
@@ -456,7 +458,7 @@ ros_reset()
     
     unset ROS_DOMAIN_ID
     unset FASTRTPS_DEFAULT_PROFILES_FILE
-    unset CYCLONEDDS_URI
+    export CYCLONEDDS_URI='<Discovery><MaxAutoParticipantIndex>100</><Peers><Peer address="localhost"/>' 
     
     ros_management_prompt __CLEAN
     ros_management_add ros_reset
@@ -472,8 +474,9 @@ ros_baxter()
 
     # force ROS 2 on localhost, Baxter runs on ROS 1 anyway
     export ROS_LOCALHOST_ONLY=1
+    unset ROS_DOMAIN_ID
     unset FASTRTPS_DEFAULT_PROFILES_FILE
-    unset CYCLONEDDS_URI
+    export CYCLONEDDS_URI='<Discovery><MaxAutoParticipantIndex>100</><Peers><Peer address="localhost"/>'
     
     # prompt and store
     ros_management_prompt baxter 124
@@ -490,12 +493,11 @@ ros_turtle()
     # Domain ID depends on turtlebot
     export ROS_DOMAIN_ID=$1
 
-    # force ROS 2 on wifi
-    wifi_interface=$(for dev in /sys/class/net/*; do [ -e "$dev"/wireless ] && echo ${dev##*/}; done)
-    ros_restrict $wifi_interface --nohistory
+    # force ROS 2 on wifi, do not save it in history
+    ros_restrict WIFI --nohistory
     
     # prompt and store
-    ros_management_prompt turtlebot$1 113
+    ros_management_prompt turtlebot$1 $((111+$1))
     ros_management_add ros_turtle $1
 }
 

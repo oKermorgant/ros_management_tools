@@ -23,18 +23,19 @@ If you use `-k` in your `~/.bashrc` it is better to use `-ros1` or `-ros2` inste
 
 ### Restrict ROS 2 to a network interface
 
-The function `ros_restrict` takes a network interface and will only use this interface for ROS 2 (in this terminal).
+The function `ros_restrict` takes a network interface (or `WIFI` / `ETH`) and will only use this interface for ROS 2 (in this terminal).
 It is designed for fastRTPS and Cyclone DDS.
 
 ```bash
-ros_restrict wlan0  # only uses WiFi
+ros_restrict WIFI  # only uses WiFi
+# or ros_restrict wlan0 if it is the name of the wifi interface
 ```
 If `ros_management.bash` was sourced with `-k` then this restriction is loaded in any new terminal
 
 ### Reset previous settings
 
 To ignore the stored settings (ros version / network interface restriction) there are two options:
-- run `ros_reset` that removes any previous settings
+- run `ros_reset` that removes any previous settings and sets `ROS_LOCALHOST_ONLY` for ROS 2
 - source the script without `-k`, the settings will still be here but will not be loaded in this terminal
 
 ### Example
