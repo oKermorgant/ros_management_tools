@@ -328,6 +328,13 @@ ros_restrict()
         local interface=$(ip link | awk -F: '$0 !~ "lo|vir|wl|^[^0-9]"{print $2;getline}')
         local interface=$(for dev in $interface; do [ ! -e /sys/class/net/"$dev"/wireless ] && echo ${dev##*/}; done)
     fi
+    if [[ $1 == "lo" ]]; then
+        export ROS_LOCALHOST_ONLY=1
+        unset ROS_DOMAIN_ID
+        unset FASTRTPS_DEFAULT_PROFILES_FILE
+        export CYCLONEDDS_URI='<Discovery><MaxAutoParticipantIndex>100</><Peers><Peer address="localhost"/>'
+        return
+    fi        
 
     # Fast-DDS https://fast-dds.docs.eprosima.com/en/latest/fastdds/transport/whitelist.html
     # needs actual ip for this interface
@@ -454,11 +461,9 @@ ros_reset()
     # reset to standard network settings
     unset ROS_IP
     unset ROS_MASTER_URI
-    export ROS_LOCALHOST_ONLY=1
     
-    unset ROS_DOMAIN_ID
-    unset FASTRTPS_DEFAULT_PROFILES_FILE
-    export CYCLONEDDS_URI='<Discovery><MaxAutoParticipantIndex>100</><Peers><Peer address="localhost"/>' 
+    # ROS_LOCALHOST_ONLY with cyclonedds URI
+    ros_restrict lo
     
     ros_management_prompt __CLEAN
     ros_management_add ros_reset
@@ -473,10 +478,7 @@ ros_baxter()
     export ROS_MASTER_URI=http://baxter.local:11311
 
     # force ROS 2 on localhost, Baxter runs on ROS 1 anyway
-    export ROS_LOCALHOST_ONLY=1
-    unset ROS_DOMAIN_ID
-    unset FASTRTPS_DEFAULT_PROFILES_FILE
-    export CYCLONEDDS_URI='<Discovery><MaxAutoParticipantIndex>100</><Peers><Peer address="localhost"/>'
+    ros_restrict lo
     
     # prompt and store
     ros_management_prompt baxter 124
