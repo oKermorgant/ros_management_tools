@@ -392,9 +392,6 @@ ros_restrict()
     fi
 }
 
-# shortcut to be sure where we are
-alias rosd='echo $ROS_DISTRO'
-
 # shortcut to build ros1_bridge without messing system paths
 # assumes we are in our ROS 2 workspace directory / recompiles ros1_bridge
 # make sure it is worth it, this is quite long...
@@ -463,7 +460,7 @@ ros_reset()
     unset ROS_MASTER_URI
     
     # ROS_LOCALHOST_ONLY with cyclonedds URI
-    ros_restrict lo
+    ros_restrict lo --nohistory
     
     ros_management_prompt __CLEAN
     ros_management_add ros_reset
@@ -478,7 +475,7 @@ ros_baxter()
     export ROS_MASTER_URI=http://baxter.local:11311
 
     # force ROS 2 on localhost, Baxter runs on ROS 1 anyway
-    ros_restrict lo
+    ros_restrict lo --nohistory
     
     # prompt and store
     ros_management_prompt baxter 124
@@ -508,7 +505,7 @@ ros_management_init()
 {
     # check if we are imposed a ROS version when sourcing this script            
     if [[ "$*" =~ (.*)(-ros)([12])(.*) ]]; then
-        ROS_MANAGEMENT_VERSION="${BASH_REMATCH[3]}"
+        local ROS_MANAGEMENT_VERSION="${BASH_REMATCH[3]}"
         # source if no history
         if [[ -z $ROS_MANAGEMENT_AUTO_INIT ]] || [[ ! -e $ROS_MANAGEMENT_INIT_FILE ]] || [[ -z $(grep '^ros[12]ws' $ROS_MANAGEMENT_INIT_FILE) ]]; then    
             eval "ros${ROS_MANAGEMENT_VERSION}ws"
