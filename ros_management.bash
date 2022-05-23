@@ -333,6 +333,12 @@ ros_restrict()
         unset ROS_DOMAIN_ID
         unset FASTRTPS_DEFAULT_PROFILES_FILE
         export CYCLONEDDS_URI='<Discovery><MaxAutoParticipantIndex>100</><Peers><Peer address="localhost"/>'
+        
+        # only update history and prompt if raw call
+        if [[ $# -eq 1 ]]; then
+            ros_management_add ros_restrict $interface
+            ros_management_prompt __CLEAN
+        fi
         return
     fi        
 
