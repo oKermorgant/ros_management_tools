@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # Switch between ROS 1 / ROS 2 workspaces without messing with environment variables
+# Helpers for colcon (colbuild) and network interfaces with ROS 2
 # Olivier Kermorgant
 
 # ROS 1 / 2 workspaces are defined in overlay ordering 
@@ -68,7 +69,7 @@ ros_management_prompt()
     
     local token_color="\[\e[39m\]"
     local distro=$(rosversion -d)
-    if [[ $distro == "noetic" ]] || [[ $distro == "<unknown>" ]]; then
+    if [[ $distro == "noetic" ]] || [[ $distro == "<unknown>" ]] || [[ $distro == "Debian" ]]; then
         # actually we always disable the special prompt for ROS 1        
         local DUMMY_LINE=1
         #local ROS_COLOR="\[\e[38;5;17m\]"  # noetic green
@@ -79,7 +80,7 @@ ros_management_prompt()
             ("foxy") echo "166" ;;
             ("galactic") echo "87" ;;
             ("rolling") echo "40" ;;
-            ("humble") echo "108" ;;
+            ("humble") echo "74" ;;
             (*) echo "255" ;;
         esac)
         local ROS_COLOR="\[\e[38;5;${ROS_COLOR}m\]"
