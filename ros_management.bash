@@ -332,7 +332,18 @@ ros_restrict()
         export ROS_LOCALHOST_ONLY=1
         unset ROS_DOMAIN_ID
         unset FASTRTPS_DEFAULT_PROFILES_FILE
-        export CYCLONEDDS_URI='<Discovery><MaxAutoParticipantIndex>100</><Peers><Peer address="localhost"/>'
+        # https://answers.ros.org/question/365051/using-ros2-offline-ros_localhost_only1/
+        export CYCLONEDDS_URI='<General>
+            <NetworkInterfaceAddress>lo</NetworkInterfaceAddress>
+            <AllowMulticast>false</AllowMulticast>
+        </General>
+        <Discovery>
+            <ParticipantIndex>auto</ParticipantIndex>
+            <MaxAutoParticipantIndex>100</MaxAutoParticipantIndex>
+            <Peers>
+                <Peer address="localhost"/>
+            </Peers>
+        </Discovery>'
         
         # only update history and prompt if raw call
         if [[ $# -eq 1 ]]; then
