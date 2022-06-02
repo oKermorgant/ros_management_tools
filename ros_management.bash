@@ -12,36 +12,23 @@ export ros1_workspaces="${ros1_workspaces//'~'/$HOME}"
 export ros2_workspaces="${ros2_workspaces//'~'/$HOME}"
 export PS1_ori=$PS1
 
-ROS_MANAGEMENT_INIT_FILE=~/.ros_management_auto_init
+# store arguments to this script to be used in inner functions
+ROS_MANAGEMENT_ARGS="$*"
 
-# use auto-initialization from file if sourced with -k
-if [[ "$*" == *"-k"* ]]; then
-    ROS_MANAGEMENT_AUTO_INIT=1
-else
-    unset ROS_MANAGEMENT_AUTO_INIT
-    rm -rf $ROS_MANAGEMENT_INIT_FILE
-fi
-
-# modify prompt if sourced with -p
-if [[ "$*" == *"-p"* ]]; then
-    ROS_MANAGEMENT_PROMPT=1
-else
-    unset ROS_MANAGEMENT_PROMPT
-fi
 
 # add a command for the next auto-init
 ros_management_add()
 {
-    if [[ -z $ROS_MANAGEMENT_AUTO_INIT ]]; then
+    if [[ ! $ROS_MANAGEMENT_ARGS == *"-k"* ]]; then
         return
     fi
 
-    if [[ ! -e $ROS_MANAGEMENT_INIT_FILE ]]; then
-        echo "$*" > $ROS_MANAGEMENT_INIT_FILE
+    if [[ ! -e ~/.ros_management_auto_init ]]; then
+        echo "$*" > ~/.ros_management_auto_init
         return
     fi
     
-    local ros_history=$(<$ROS_MANAGEMENT_INIT_FILE)
+    local ros_history=$(<~/.ros_management_auto_init)
  
     # only valid commands are ros1ws vs ros2ws and any ros_ (exclusive)    
     if [[ "$*" == *"ws" ]]; then
@@ -51,10 +38,10 @@ ros_management_add()
     fi
         
     if [[ $updated != $ros_history ]]; then
-        echo "$updated" > $ROS_MANAGEMENT_INIT_FILE
+        echo "$updated" > ~/.ros_management_auto_init
     else
         if [[ "$updated" != *"$*"* ]]; then
-            echo "$*" >> $ROS_MANAGEMENT_INIT_FILE
+            echo "$*" >> ~/.ros_management_auto_init
         fi
     fi
 }
@@ -63,28 +50,38 @@ ros_management_add()
 # also indicates on which robot we are working, if any
 ros_management_prompt()
 {
-    if [[ -z $ROS_MANAGEMENT_PROMPT ]] || [[ -z $(which rosversion) ]]; then
+    if [[ $ROS_MANAGEMENT_ARGS != *"-p"* ]] || [[ -z $(which rosversion) ]]; then
         return
     fi
     
     local token_color="\[\e[39m\]"
     local distro=$(rosversion -d)
-    if [[ $distro == "noetic" ]] || [[ $distro == "<unknown>" ]] || [[ $distro == "Debian" ]]; then
-        # actually we always disable the special prompt for ROS 1        
-        local DUMMY_LINE=1
-        #local ROS_COLOR="\[\e[38;5;17m\]"  # noetic green
-        #local ROS_PROMPT="${ROS_COLOR}[ROS1" 
-    else        
-        local ROS_COLOR=$(
-        case "$distro" in
-            ("foxy") echo "166" ;;
-            ("galactic") echo "87" ;;
-            ("rolling") echo "40" ;;
-            ("humble") echo "74" ;;
-            (*) echo "255" ;;
-        esac)
-        local ROS_COLOR="\[\e[38;5;${ROS_COLOR}m\]"
-        local ROS_PROMPT="${ROS_COLOR}[ROS2"
+    
+    # get sourced version, if any
+    local default_ros="0"
+    if [[ $ROS_MANAGEMENT_ARGS =~ (.*)(-ros)([12])(.*) ]]; then
+        local default_ros="${BASH_REMATCH[3]}"
+    fi    
+    
+    # we disable the prompt for the version that was given in source (assumed to be the default/quiet version)
+    if [[ $distro == "noetic" ]] || [[ $distro == "<unknown>" ]] || [[ $distro == "Debian" ]]; then      
+        if [[ $default_ros != "1" ]]; then
+            local ROS_COLOR="\[\e[38;5;106m\]"  # noetic green
+            local ROS_PROMPT="${ROS_COLOR}[ROS1" 
+        fi
+    else    
+        if [[ $default_ros != "2" ]]; then
+            local ROS_COLOR=$(
+            case "$distro" in
+                ("foxy") echo "166" ;;
+                ("galactic") echo "87" ;;
+                ("rolling") echo "40" ;;
+                ("humble") echo "74" ;;
+                (*) echo "255" ;;
+            esac)
+            local ROS_COLOR="\[\e[38;5;${ROS_COLOR}m\]"
+            local ROS_PROMPT="${ROS_COLOR}[ROS2"
+        fi
     fi
         
     # split current PS1
@@ -99,8 +96,8 @@ ros_management_prompt()
                 local token=${BASH_REMATCH[4]}                    
             fi
         else
-            # token only (ROS 1 not displayed)
-            if [[ $cur_prompt != "ROS2"* ]]; then
+            # special token only
+            if [[ $cur_prompt != "ROS"* ]]; then
                 local token_color=${BASH_REMATCH[1]}
                 local token=$cur_prompt
             fi
@@ -174,11 +171,11 @@ local sub
 for sub in $subs
 do
     if [ -f "$1${sub}local_setup.bash" ]; then
-            source "$1${sub}local_setup.bash"
+        source "$1${sub}local_setup.bash"
         return
     fi
     if [ -f "$1${sub}local_setup.sh" ]; then
-            source "$1${sub}local_setup.sh"
+        source "$1${sub}local_setup.sh"
         return
     fi
 done
@@ -280,7 +277,7 @@ colbuild()
 ros_management_remove_all_paths $ros1_workspaces
 unset ROS_DISTRO
 
-# source ROS 2 ws up to this one
+# source ROS 2 workspaces up to this one (not including)
 unset AMENT_PREFIX_PATH
 unset AMENT_CURRENT_PREFIX
 unset COLCON_PREFIX_PATH
@@ -518,22 +515,16 @@ ros_turtle()
     ros_management_add ros_turtle $1
 }
 
-# deal with history
-ros_management_init()
-{
-    # check if we are imposed a ROS version when sourcing this script            
-    if [[ "$*" =~ (.*)(-ros)([12])(.*) ]]; then
-        local ROS_MANAGEMENT_VERSION="${BASH_REMATCH[3]}"
-        # source if no history
-        if [[ -z $ROS_MANAGEMENT_AUTO_INIT ]] || [[ ! -e $ROS_MANAGEMENT_INIT_FILE ]] || [[ -z $(grep '^ros[12]ws' $ROS_MANAGEMENT_INIT_FILE) ]]; then    
-            eval "ros${ROS_MANAGEMENT_VERSION}ws"
-        fi
-    fi
 
-    # eval history if requested
-    if [[ ! -z $ROS_MANAGEMENT_AUTO_INIT ]] && [[ -e $ROS_MANAGEMENT_INIT_FILE ]]; then
-        source $ROS_MANAGEMENT_INIT_FILE
+# check if we are imposed a ROS version when sourcing this script, and we have no history to tell otherwise
+if [[ $ROS_MANAGEMENT_ARGS =~ (.*)(-ros)([12])(.*) ]]; then
+    # source if no history
+    if [[ ! $ROS_MANAGEMENT_ARGS == *"-k"* ]] || [[ ! -e ~/.ros_management_auto_init ]] || [[ -z $(grep '^ros[12]ws' ~/.ros_management_auto_init) ]]; then    
+        eval "ros${BASH_REMATCH[3]}ws"
     fi
-}
+fi
 
-ros_management_init "'$*'"
+# eval history if requested
+if [[ $ROS_MANAGEMENT_ARGS == *"-k"* ]] && [[ -e ~/.ros_management_auto_init ]]; then
+    source ~/.ros_management_auto_init
+fi
