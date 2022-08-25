@@ -4,7 +4,7 @@
 # Helpers for colcon (colbuild) and network interfaces with ROS 2
 # Olivier Kermorgant
 
-# ROS 1 / 2 workspaces are defined in overlay ordering 
+# ROS 1 / 2 workspaces are defined in overlay ordering
 # ex: ros1_workspaces="/opt/ros/noetic $HOME/ros_ws1 $HOME/ros_ws2"
 
 # replace tilde by home dir in paths
@@ -27,16 +27,16 @@ ros_management_add()
         echo "$*" > ~/.ros_management_auto_init
         return
     fi
-    
+
     local ros_history=$(<~/.ros_management_auto_init)
- 
-    # only valid commands are ros1ws vs ros2ws and any ros_ (exclusive)    
+
+    # only valid commands are ros1ws vs ros2ws and any ros_ (exclusive)
     if [[ "$*" == *"ws" ]]; then
         local updated=${ros_history/ros[12]ws/$*}
     else
         local updated=$(echo "$ros_history" | sed "s/ros_.*/$*/")
     fi
-        
+
     if [[ $updated != $ros_history ]]; then
         echo "$updated" > ~/.ros_management_auto_init
     else
@@ -53,23 +53,23 @@ ros_management_prompt()
     if [[ $ROS_MANAGEMENT_ARGS != *"-p"* ]] || [[ -z $(which rosversion) ]]; then
         return
     fi
-    
+
     local token_color="\[\e[39m\]"
     local distro=$(rosversion -d)
-    
+
     # get sourced version, if any
     local default_ros="0"
     if [[ $ROS_MANAGEMENT_ARGS =~ (.*)(-ros)([12])(.*) ]]; then
         local default_ros="${BASH_REMATCH[3]}"
-    fi    
-    
+    fi
+
     # we disable the prompt for the version that was given in source (assumed to be the default/quiet version)
-    if [[ $distro == "noetic" ]] || [[ $distro == "<unknown>" ]] || [[ $distro == "Debian" ]]; then      
+    if [[ $distro == "noetic" ]] || [[ $distro == "<unknown>" ]] || [[ $distro == "Debian" ]]; then
         if [[ $default_ros != "1" ]]; then
             local ROS_COLOR="\[\e[38;5;106m\]"  # noetic green
-            local ROS_PROMPT="${ROS_COLOR}[ROS1" 
+            local ROS_PROMPT="${ROS_COLOR}[ROS1"
         fi
-    else    
+    else
         if [[ $default_ros != "2" ]]; then
             local ROS_COLOR=$(
             case "$distro" in
@@ -83,7 +83,7 @@ ros_management_prompt()
             local ROS_PROMPT="${ROS_COLOR}[ROS2"
         fi
     fi
-        
+
     # split current PS1
     if [[ "$PS1" =~ (.*\\\])(\[)(.*)(\]\\\[\\e\[0m\\\] )(.*) ]]; then
         local cur_prompt=${BASH_REMATCH[3]}
@@ -93,7 +93,7 @@ ros_management_prompt()
         if [[ $cur_prompt == *"@"* ]]; then
             if [[ "$cur_prompt" =~ (ROS[12])(\\\[.*\\\])(@)(.*)(\\\[.*) ]]; then
                 local token_color=${BASH_REMATCH[2]}
-                local token=${BASH_REMATCH[4]}                    
+                local token=${BASH_REMATCH[4]}
             fi
         else
             # special token only
@@ -101,11 +101,11 @@ ros_management_prompt()
                 local token_color=${BASH_REMATCH[1]}
                 local token=$cur_prompt
             fi
-        fi        
+        fi
     fi
-    
+
     if [[ "$1" != "__CLEAN" ]]; then
-        
+
         if [[ $# -ne 0 ]]; then
             # override token
             local token=$1
@@ -113,9 +113,9 @@ ros_management_prompt()
             # add this color
                 local token_color="\[\e[38;5;$2m\]"
             fi
-        fi                
+        fi
         if [[ ! -z $token ]]; then
-            if [[ -z $ROS_PROMPT ]]; then            
+            if [[ -z $ROS_PROMPT ]]; then
                 local ROS_PROMPT="${token_color}[$token"
                 unset ROS_COLOR
             else
@@ -197,7 +197,7 @@ do
     do
     if [ -d "${ws##* }$sub" ]; then
         res=$(grep -r --include \*package.xml $key ${ws##* }$sub )
-        if [[ $res != "" ]]; then 
+        if [[ $res != "" ]]; then
         cd ${res%%/package.xml*}
         return
         fi
@@ -238,8 +238,10 @@ if [ -f /usr/share/gazebo/setup.sh ]; then
 fi
 
 # change prompt if you like (actually not by default)
-ros_management_prompt
-ros_management_add ros1ws
+if [[ $# -eq 0 ]]; then
+    ros_management_prompt
+    ros_management_add ros1ws
+fi
 }
 
 # Activate ROS 2 ws
@@ -266,8 +268,10 @@ fi
 
 
 # update ROS prompt
-ros_management_prompt
-ros_management_add ros2ws
+if [[ $# -eq 0 ]]; then
+    ros_management_prompt
+    ros_management_add ros2ws
+fi
 }
 
 # some shortcuts
@@ -316,7 +320,7 @@ ros_restrict()
         echo "ros_restrict: give a network interface"
         return
     fi
-    
+
     # auto-detect if basic name
     local interface=$1
     if [[ $1 == "WIFI" ]]; then
@@ -342,14 +346,14 @@ ros_restrict()
                 <Peer address="localhost"/>
             </Peers>
         </Discovery>'
-        
+
         # only update history and prompt if raw call
         if [[ $# -eq 1 ]]; then
             ros_management_add ros_restrict $interface
             ros_management_prompt __CLEAN
         fi
         return
-    fi        
+    fi
 
     # Fast-DDS https://fast-dds.docs.eprosima.com/en/latest/fastdds/transport/whitelist.html
     # needs actual ip for this interface
@@ -364,7 +368,7 @@ ros_restrict()
                     <address>${ipinet##inet }</address>
                 </interfaceWhiteList>
             </transport_descriptor>
-            
+
             <transport_descriptor>
                 <transport_id>CustomTcpTransport</transport_id>
                 <type>TCPv4</type>
@@ -372,9 +376,9 @@ ros_restrict()
                     <address>${ipinet##inet }</address>
                 </interfaceWhiteList>
             </transport_descriptor>
-            
+
         </transport_descriptors>
-        
+
         <participant profile_name=\"CustomUDPTransportParticipant\">
             <rtps>
                 <userTransports>
@@ -382,7 +386,7 @@ ros_restrict()
                 </userTransports>
             </rtps>
         </participant>
-        
+
         <participant profile_name=\"CustomTcpTransportParticipant\">
             <rtps>
                 <userTransports>
@@ -403,7 +407,7 @@ ros_restrict()
     # only update history and prompt if raw call
     if [[ $# -eq 1 ]]; then
         ros_management_add ros_restrict $interface
-        ros_management_prompt $interface 15       
+        ros_management_prompt $interface 15
     fi
 }
 
@@ -473,10 +477,10 @@ ros_reset()
     # reset to standard network settings
     unset ROS_IP
     unset ROS_MASTER_URI
-    
+
     # ROS_LOCALHOST_ONLY with cyclonedds URI
     ros_restrict lo --nohistory
-    
+
     ros_management_prompt __CLEAN
     ros_management_add ros_reset
 }
@@ -491,7 +495,7 @@ ros_baxter()
 
     # force ROS 2 on localhost, Baxter runs on ROS 1 anyway
     ros_restrict lo --nohistory
-    
+
     # prompt and store
     ros_management_prompt baxter 124
     ros_management_add ros_baxter
@@ -499,17 +503,17 @@ ros_baxter()
 
 ros_turtle()
 {
-    if [[ $# -eq 0 ]]; then    
+    if [[ $# -eq 0 ]]; then
         echo "Give a turtlebot number to setup ROS 2 connection"
         return
     fi
-    
+
     # Domain ID depends on turtlebot
     export ROS_DOMAIN_ID=$1
 
     # force ROS 2 on wifi, do not save it in history
     ros_restrict WIFI --nohistory
-    
+
     # prompt and store
     ros_management_prompt turtlebot$1 $((111+$1))
     ros_management_add ros_turtle $1
@@ -519,7 +523,7 @@ ros_turtle()
 # check if we are imposed a ROS version when sourcing this script, and we have no history to tell otherwise
 if [[ $ROS_MANAGEMENT_ARGS =~ (.*)(-ros)([12])(.*) ]]; then
     # source if no history
-    if [[ ! $ROS_MANAGEMENT_ARGS == *"-k"* ]] || [[ ! -e ~/.ros_management_auto_init ]] || [[ -z $(grep '^ros[12]ws' ~/.ros_management_auto_init) ]]; then    
+    if [[ ! $ROS_MANAGEMENT_ARGS == *"-k"* ]] || [[ ! -e ~/.ros_management_auto_init ]] || [[ -z $(grep '^ros[12]ws' ~/.ros_management_auto_init) ]]; then
         eval "ros${BASH_REMATCH[3]}ws"
     fi
 fi

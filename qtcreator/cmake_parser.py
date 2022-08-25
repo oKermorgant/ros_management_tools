@@ -30,11 +30,11 @@ parser.add_argument('-r', action='store_true', default=False, help="Runs this sc
 args = parser.parse_args()
 
 if args.r:
-    
+
     ignore = ['build','install','devel']
-    
+
     def do_dir(d):
-        
+
         if 'CMakeLists.txt' in os.listdir(d) and 'CMakeLists.txt.user' in os.listdir(d):
             print('Calling gen_qtcreator in ' + d)
             cmd = 'python3 ' + os.path.abspath(__file__) + ' --clean -c ' + d
@@ -42,13 +42,13 @@ if args.r:
                 check_output(cmd.split())
             except:
                 pass
-            return  
-        
+            return
+
         for li in os.listdir(d):
             d_new = d + '/' + li
             if os.path.isdir(d_new) and li not in ignore and li[0] != '.':
-                do_dir(d_new)    
-                
+                do_dir(d_new)
+
     do_dir('.')
     sys.exit(0)
 
@@ -68,18 +68,18 @@ if not os.path.exists(envID_file) or not os.path.exists(confID_file):
     sleep(3)
     os.system('qtcreator&')
     out = ''
-    
+
     while not os.path.exists(envID_file) or not os.path.exists(confID_file):
         sleep(1)
     sleep(5)
     os.system('killall qtcreator')
     #print('Please run QtCreator at least once before automatic configuration')
     #sys.exit(0)
-    
+
 class Version:
     def __init__(self, s):
         self.s = self.split(s)
-        
+
     def split(self,s):
         s = [int(v) for v in s.split('.')]
         if len(s) != 3:
@@ -87,18 +87,18 @@ class Version:
         return s
     def rep(self):
         return '.'.join(str(v) for v in self.s)
-    
+
     def __eq__(self,s):
         s = self.split(s)
         return s[0] == self.s[0] and s[1] == self.s[1]
-    
+
     def __ge__(self, s):
         s = self.split(s)
         for i in range(3):
             if self.s[i] < s[i]:
                 return False
         return True
-        
+
 # get ID's on this computer and Qt Creator version
 with open(envID_file) as f:
     envID = f.read().split('Settings\EnvironmentId=@ByteArray(')[1].split(')')[0]
@@ -119,7 +119,7 @@ if os.path.exists(cmake_user) and not args.yes:
     if ans == 'n':
         print('CMakeLists.txt.user already exists, exiting')
         sys.exit(0)
-        
+
 # remove previous configs
 for li in os.listdir(cmake_dir):
     if li.startswith('CMakeLists.txt.user'):
@@ -159,10 +159,10 @@ for line in cmake:
         if ros == 0:
             print('Configuring as ROS 2 package')
         ros = 2
-        
+
 if len(targets) == 0 and not has_lib:
     print('  no C++ targets for ' + package)
-    
+
 def is_ros_ws(path):
     if ros == 1:
         sig = ('devel/setup.bash', 'src')
@@ -172,7 +172,7 @@ def is_ros_ws(path):
         if not os.path.exists(path + '/' + s):
             return False
     return True
-        
+
 # check build directory - update if ROS unless manually set
 bin_dir = build_dir
 if ros and not '-b' in sys.argv:
@@ -181,7 +181,7 @@ if ros and not '-b' in sys.argv:
         ros_dir = os.path.abspath(ros_dir + '/..')
         if ros_dir in ('/', '//'):
             print('This ROS package does not seem to be in any workspace, exiting')
-            sys.exit(0)      
+            sys.exit(0)
     build_dir = ros_dir + '/build/' + package
     bin_dir = ros_dir + '/devel/.private/' + package + '/lib'
     if ros == 2:
@@ -196,7 +196,7 @@ elif not os.path.exists(build_dir):
 elif args.clean:
     rmtree(build_dir)
     os.mkdir(build_dir)
-    
+
 print('  build directory: ' + os.path.abspath(build_dir))
 print('  bin directory:   ' + os.path.abspath(bin_dir))
 
@@ -211,7 +211,7 @@ elif qtcVersion == '4.9':
     template_name = 'CMakeLists.txt.user.template.4.9'
 elif qtcVersion >= '4.10':
     template_name = 'CMakeLists.txt.user.template'
-    
+
 with open(gen_config_path + '/' + template_name) as f:
     config = f.read()
 

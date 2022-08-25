@@ -30,11 +30,11 @@ parser.add_argument('-r', action='store_true', default=False, help="Runs this sc
 args = parser.parse_args()
 
 if args.r:
-    
+
     ignore = ['build','install','devel']
-    
+
     def do_dir(d):
-        
+
         if 'CMakeLists.txt' in os.listdir(d) and 'CMakeLists.txt.user' in os.listdir(d):
             print('Calling gen_qtcreator in ' + d)
             cmd = 'python3 ' + os.path.abspath(__file__) + ' --clean -c ' + d
@@ -42,13 +42,13 @@ if args.r:
                 check_output(cmd.split())
             except:
                 pass
-            return  
-        
+            return
+
         for li in os.listdir(d):
             d_new = d + '/' + li
             if os.path.isdir(d_new) and li not in ignore and li[0] != '.':
-                do_dir(d_new)    
-                
+                do_dir(d_new)
+
     do_dir('.')
     sys.exit(0)
 
@@ -63,11 +63,11 @@ cmake_file = cmake_dir + '/CMakeLists.txt'
 cmake_user = cmake_file + '.user'
 build_dir = os.path.abspath(cmake_dir + '/' + args.b)
 
-   
+
 class Version:
     def __init__(self, s):
         self.s = self.split(s)
-        
+
     def split(self,s):
         s = [int(v) for v in s.split('.')]
         if len(s) != 3:
@@ -75,11 +75,11 @@ class Version:
         return s
     def rep(self):
         return '.'.join(str(v) for v in self.s)
-    
+
     def __eq__(self,s):
         s = self.split(s)
         return s[0] == self.s[0] and s[1] == self.s[1]
-    
+
     def __ge__(self, s):
         s = self.split(s)
         for i in range(3):
@@ -88,9 +88,9 @@ class Version:
             elif self.s[i] < s[i]:
                 return False
         return True
-    
-    
-# get ID's on this computer and Qt Creator version    
+
+
+# get ID's on this computer and Qt Creator version
 def readConfig():
     with open(envID_file) as f:
         envID = f.read().split('Settings\EnvironmentId=@ByteArray(')[1].split(')')[0]
@@ -101,14 +101,14 @@ def readConfig():
     return envID, confID, qtcVersion
 
 qt_proc = None
-    
+
 while True:
-    
+
     if qt_proc is None and (not os.path.exists(envID_file) or not os.path.exists(confID_file)):
         print('Will run QtCreator once to generate local configuration')
         sleep(3)
         qt_proc = Popen(['qtcreator','&'], shell=False)
-    
+
     try:
         envID, confID, qtcVersion = readConfig()
         break
@@ -120,7 +120,7 @@ if qt_proc is not None:
         qt_proc.kill()
         qt_proc.communicate()
     except: pass
-            
+
 if not os.path.exists(cmake_file):
     print('Could not find CMakeLists.txt, exiting')
     print('Given location: ' + cmake_file)
@@ -133,7 +133,7 @@ if os.path.exists(cmake_user) and not args.yes:
     if ans == 'n':
         print('CMakeLists.txt.user already exists, exiting')
         sys.exit(0)
-        
+
 # remove previous configs
 for li in os.listdir(cmake_dir):
     if li.startswith('CMakeLists.txt.user'):
@@ -151,21 +151,21 @@ class RosBuild:
     tool = ''
     @staticmethod
     def find_ws_root(pkg_dir):
-        
+
         # find a 'src' directory in this tree
         # if several, pick the one that also has a 'build' folder
-        
+
         if '/src' not in pkg_dir:
             print('The package path does not comply with ROS standard (no src folder)')
             return None
-        
+
         tree = pkg_dir.split('/src')
-        
+
         ros_dir = tree[0]
-                
+
         if len(tree) > 2:
-            # check it is the correct one            
-            for path in tree[1:]:                
+            # check it is the correct one
+            for path in tree[1:]:
                 if os.path.exists(f'{ros_dir}/build'):
                     break
                 ros_dir += f'/src{path}'
@@ -174,20 +174,20 @@ class RosBuild:
                 print('The package path is ambiguous (several src folders), cannot guess the workspace')
                 print('Compile (catkin or colcon) from the workspace then run this script again.')
                 return None
-        
+
         # try to identify build tool
-        if os.path.exists(f'{ros_dir}/build/COLCON_IGNORE'):                    
+        if os.path.exists(f'{ros_dir}/build/COLCON_IGNORE'):
             RosBuild.tool = 'colcon'
         elif os.path.exists(f'{ros_dir}/.catkin_tools'):
             RosBuild.tool = 'catkin'
-                
+
         if RosBuild.tool:
             print(f'Configuring for ROS {RosBuild.version} workspace compiled through {RosBuild.tool}')
         else:
             RosBuild.tool = ['catkin','colcon'][RosBuild.version-1]
-            print(f'Could not identify build tool, picking {RosBuild.tool} for ROS {RosBuild.version}')        
+            print(f'Could not identify build tool, picking {RosBuild.tool} for ROS {RosBuild.version}')
         return ros_dir
-    
+
     @staticmethod
     def get_dirs(package):
         build_dir = ros_dir + '/build/' + package
@@ -221,31 +221,31 @@ for line in cmake:
     elif 'ament_package' in line:
         if not RosBuild.version:
             RosBuild.version = 2
-                
+
 if len(targets) == 0 and not has_lib:
     print('  no C++ targets for ' + package)
-            
+
 # check build directory - update if ROS unless manually set
 bin_dir = build_dir
 install_dir = '/usr/local'
 
 if RosBuild.version and not '-b' in sys.argv:
-        
+
     ros_dir = RosBuild.find_ws_root(os.path.abspath(cmake_dir))
     if ros_dir is None:
         sys.exit(0)
-     
+
     build_dir, bin_dir, install_dir = RosBuild.get_dirs(package)
-    
+
     if not os.path.exists(build_dir):
         print(f'You will have to run "{RosBuild.tool} build" before loading the project in Qt Creator')
-        
+
 elif not os.path.exists(build_dir):
     os.mkdir(build_dir)
 elif args.clean:
     rmtree(build_dir)
     os.mkdir(build_dir)
-    
+
 print('  build directory: ' + os.path.abspath(build_dir))
 print('  bin directory:   ' + os.path.abspath(bin_dir))
 
@@ -260,7 +260,7 @@ elif qtcVersion == '4.9':
     template_name = 'CMakeLists.txt.user.template.4.9'
 elif qtcVersion >= '4.10':
     template_name = 'CMakeLists.txt.user.template'
-    
+
 with open(gen_config_path + '/' + template_name) as f:
     config = f.read()
 

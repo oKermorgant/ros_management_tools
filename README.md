@@ -1,4 +1,4 @@
-Some scripts to easily use ROS 1 and ROS 2 
+Some scripts to easily use ROS 1 and ROS 2
 
 ## ROS 1 / ROS 2 management
 
@@ -15,8 +15,8 @@ ros2ws  # activate ROS 2 / disable ROS 1
 ## Options
 
 - if sourced with `-p`, the script will also update the bash prompt in order to know whether we are in a ROS 1 or ROS 2 terminal
-- if sourced with `-k`, the settings will be stored and automatically loaded in any new terminal. 
-    - settings are stored in `~/.ros_management_auto_init` 
+- if sourced with `-k`, the settings will be stored and automatically loaded in any new terminal.
+    - settings are stored in `~/.ros_management_auto_init`
     - if sourced with `-ros1` or `-ros2`, will directly activate the given version, unless other settings have been stored
 
 If you use `-k` in your `~/.bashrc` it is better to use `-ros1` or `-ros2` instead of `ros1ws` / `ros2ws`, as the latter will override any previous setting.
@@ -47,7 +47,7 @@ ros2_workspaces="/opt/ros/foxy ~/some_ros2_workspace ~/main_ros2_overlay"
 source /path/to/ros_management.bash -p -k -ros1
 
 #activate ROS 2 workspaces and save it for future terminals
-ros2ws 
+ros2ws
 # restrict to ethernet, save it for future terminals
 ros_restrict eth0
 ```

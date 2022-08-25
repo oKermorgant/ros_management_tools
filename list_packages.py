@@ -16,7 +16,7 @@ parser.add_argument('-R','--replace', type=str, help='Print same list with new d
 args = parser.parse_args()
 
 ros_prefix = 'ros-' + args.distro
-    
+
 pkgs = check_output('apt list --installed' .split()).decode().splitlines()
 pkgs = [p.split('/')[0] for p in pkgs if p.startswith(ros_prefix) and ',automatic' not in p]
 
