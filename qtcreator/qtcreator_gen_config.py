@@ -18,7 +18,7 @@ def dict_replace(s, d):
     return s
 
 def extract(s,left='(',right=')'):
-    return s.partition(left)[2].partition(right)[0].strip(' ')
+    return s.partition(left)[2].partition(right)[0].strip()
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.description = 'A script to generate Qt Creator configuration file for CMake projects.'
@@ -142,6 +142,7 @@ for li in os.listdir(cmake_dir):
 
 with open(cmake_file) as f:
     cmake = f.read().splitlines()
+    
 package = ''
 targets = []
 build_type = 'Debug'
@@ -201,18 +202,19 @@ print('Loading ' + os.path.abspath(cmake_file) + '\n')
 
 has_lib = False
 for line in cmake:
+    
+    # remove comments anyway
+    line = line.split('#')[0]
+    while ' (' in line: line = line.replace(' (', '(')
+    
     if 'project(' in line:
         package = extract(line)
     elif 'add_library(' in line:
-        start = line.find('add_library')
-        if '#' not in line[:start]:
-            has_lib = True
+        has_lib = True
     elif 'add_executable(' in line:
-        start = line.find('add_executable')
-        if '#' not in line[:start]:
-            target = extract(line,'(',' ')
-            if '$' not in target:
-                targets.append(target)
+        target = extract(line,'(',' ')
+        if '$' not in target:
+            targets.append(target)
     elif 'CMAKE_BUILD_TYPE' in line:
         build_type = extract(line).split()[-1]
     elif 'catkin_package' in line:
@@ -276,11 +278,17 @@ replace_dict['<gen_version/>'] = qtcVersion.rep()
 replace_dict['<gen_time/>'] =  '{}-{}-{}T{}:{}:{}'.format(*ct_str)
 replace_dict['<gen_envID/>'] = envID
 replace_dict['<gen_cmake_dir/>'] = cmake_dir
-replace_dict['<gen_cmake_build_type/>'] = build_type
+
 replace_dict['<gen_build_dir/>'] = build_dir
 replace_dict['<gen_install_dir/>'] = install_dir
 replace_dict['<gen_conf/>'] = confID
 replace_dict['<gen_target_count/>'] = str(len(targets))
+replace_dict['<gen_force_build_type/>'] = ''
+if build_type is None:
+    build_type = 'Debug'
+    replace_dict['<gen_force_build_type/>'] = f'<value type="QString">CMAKE_BUILD_TYPE:STRING={build_type}</value>'    
+replace_dict['<gen_cmake_build_type/>'] = build_type
+
 config = dict_replace(config, replace_dict)
 
 # target blocks

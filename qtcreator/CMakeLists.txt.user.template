@@ -71,6 +71,7 @@
    <valuemap type="QVariantMap" key="ProjectExplorer.Target.BuildConfiguration.0">
     <value type="QString" key="CMake.Build.Type"><gen_cmake_build_type/></value>
     <valuelist type="QVariantList" key="CMake.Configuration">
+     <gen_force_build_type/>
      <value type="QString">CMAKE_CXX_COMPILER:STRING=%{Compiler:Executable:Cxx}</value>
      <value type="QString">CMAKE_C_COMPILER:STRING=%{Compiler:Executable:C}</value>
      <value type="QString">CMAKE_INSTALL_PREFIX:PATH=<gen_install_dir/></value>
