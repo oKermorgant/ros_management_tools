@@ -286,7 +286,7 @@ replace_dict['<gen_target_count/>'] = str(len(targets))
 replace_dict['<gen_force_build_type/>'] = ''
 if build_type is None:
     build_type = 'Debug'
-    if qtcVersion > '6.0':
+    if qtcVersion >= '6.0':
         replace_dict['<gen_force_build_type/>'] = f'<value type="QString">CMAKE_BUILD_TYPE:STRING={build_type}</value>'    
 replace_dict['<gen_cmake_build_type/>'] = build_type
 
