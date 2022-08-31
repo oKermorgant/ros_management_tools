@@ -321,7 +321,8 @@ ros_restrict()
         return
     fi
     
-    if [[ $ROS_DISTRO == "foxy" ]] || [[ $ROS_DISTRO == "galactic" ]]; then
+    # slight change in Cyclone syntax since Humble / 22.04
+    if [[ $(lsb_release -sr) < 22.00 ]]; then
         local legacy_cyclonedds=1
     fi
 
