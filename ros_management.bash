@@ -313,12 +313,16 @@ for ws in $ros2_workspaces; do
 done
 }
 
-# restrict fastrtps / Cyclone DDS to this network interface
+# restrict FastRTPS / Cyclone DDS to this network interface
 ros_restrict()
 {
     if [[ $# -eq 0 ]]; then
         echo "ros_restrict: give a network interface"
         return
+    fi
+    
+    if [[ $ROS_DISTRO == "foxy" ]] || [[ $ROS_DISTRO == "galactic" ]]; then
+        local legacy_cyclonedds=1
     fi
 
     # auto-detect if basic name
@@ -335,6 +339,8 @@ ros_restrict()
         unset ROS_DOMAIN_ID
         unset FASTRTPS_DEFAULT_PROFILES_FILE
         # https://answers.ros.org/question/365051/using-ros2-offline-ros_localhost_only1/
+        
+        if [[ -n $legacy_cyclonedds ]]; then
         export CYCLONEDDS_URI='<General>
             <NetworkInterfaceAddress>lo</NetworkInterfaceAddress>
             <AllowMulticast>false</AllowMulticast>
@@ -346,6 +352,21 @@ ros_restrict()
                 <Peer address="localhost"/>
             </Peers>
         </Discovery>'
+        else
+        export CYCLONEDDS_URI='<General>
+             <Interfaces>
+                <NetworkInterface name="lo"/>
+            </Interfaces>
+            <AllowMulticast>false</AllowMulticast>
+        </General>
+        <Discovery>
+            <ParticipantIndex>auto</ParticipantIndex>
+            <MaxAutoParticipantIndex>100</MaxAutoParticipantIndex>
+            <Peers>
+                <Peer address="localhost"/>
+            </Peers>
+        </Discovery>'
+        fi
 
         # only update history and prompt if raw call
         if [[ $# -eq 1 ]]; then
@@ -399,7 +420,11 @@ ros_restrict()
     export FASTRTPS_DEFAULT_PROFILES_FILE=/tmp/fastrtps_interface_restriction.xml
 
     # Cyclone DDS https://dds-demonstrators.readthedocs.io/en/latest/Teams/1.Hurricane/setupCycloneDDS.html
-    export CYCLONEDDS_URI="<General><NetworkInterfaceAddress>$interface"
+    if [[ -n $legacy_cyclonedds ]]; then
+        export CYCLONEDDS_URI="<General><NetworkInterfaceAddress>$interface"
+    else
+        export CYCLONEDDS_URI='<General><Interfaces><NetworkInterface name="$interface"/>'
+    fi                
 
     # we probably do not want to limit to localhost
     unset ROS_LOCALHOST_ONLY
@@ -456,21 +481,14 @@ done
 colcon build --symlink-install --packages-select ros1_bridge --cmake-force-configure --continue-on-error
 }
 
-fastdds_server()
-{
-fastdds discovery --server-id 0
-}
 
-# enable fastdds discovery server if running
-if pgrep fast-discovery- > /dev/null
-then
-    export ROS_DISCOVERY_SERVER=127.0.0.1:11811
-#     echo "[ROS2] Enabling fast-discovery-server"
-fi
+
+
 
 
 
 # special functions for network setup on Centrale Nantes's robots
+# show several usages of ros_restrict
 
 ros_reset()
 {
@@ -519,16 +537,19 @@ ros_turtle()
     ros_management_add ros_turtle $1
 }
 
+# deal with auto init
+if [[ $ROS_MANAGEMENT_ARGS == *"-k"* ]] && [[ -e ~/.ros_management_auto_init ]]; then
+    # requested + file here
+    source ~/.ros_management_auto_init
+else
 
-# check if we are imposed a ROS version when sourcing this script, and we have no history to tell otherwise
-if [[ $ROS_MANAGEMENT_ARGS =~ (.*)(-ros)([12])(.*) ]]; then
-    # source if no history
-    if [[ ! $ROS_MANAGEMENT_ARGS == *"-k"* ]] || [[ ! -e ~/.ros_management_auto_init ]] || [[ -z $(grep '^ros[12]ws' ~/.ros_management_auto_init) ]]; then
+    # check imposed ROS version
+    if [[ $ROS_MANAGEMENT_ARGS =~ (.*)(-ros)([12])(.*) ]]; then
         eval "ros${BASH_REMATCH[3]}ws"
     fi
-fi
-
-# eval history if requested
-if [[ $ROS_MANAGEMENT_ARGS == *"-k"* ]] && [[ -e ~/.ros_management_auto_init ]]; then
-    source ~/.ros_management_auto_init
+    
+    # check localhost only
+    if [[ $ROS_MANAGEMENT_ARGS == *"-lo"* ]]; then
+        ros_restrict lo
+    fi
 fi
