@@ -293,14 +293,13 @@ for ws in $ros2_workspaces; do
     # if in this workspace, run colcon
     if [[ "$PWD" = "$ws/"* ]]; then
         local cmd="colcon build --symlink-install --continue-on-error"
-        # add all args, change -p to --packages-select
+        # add all args, change -p to --packages-select and -pu to --packages-up-to
         for arg in $@; do
-            if [[ "$arg" = "-p" ]]
-            then
-                cmd="$cmd --packages-select"
-            else
-                cmd="$cmd $arg"
-            fi
+            case "$arg" in
+                ("-p") cmd="$cmd --packages-select" ;;
+                ("-pu") cmd="$cmd --packages-up-to" ;;
+                (*) cmd="$cmd $arg" ;;
+            esac
         done
 
         if [ -d "$ws/src/ros1_bridge" ]; then

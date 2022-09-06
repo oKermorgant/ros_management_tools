@@ -2,7 +2,7 @@ Some scripts to easily use ROS 1 and ROS 2
 
 ## ROS 1 / ROS 2 management
 
-The script `ros_management.bash` has a set of tools to handle ROS 1 / ROS 2 workspaces. It can be sourced in a `.bashrc` after defining the two variables `ros1_workspaces` and `ros2_workspaces`, that point to the overlay-ordered workspaces:
+The script `ros_management.bash` is a set of tools to handle ROS 1 / ROS 2 workspaces. It can be sourced in a `.bashrc` after defining the two variables `ros1_workspaces` and `ros2_workspaces`, that list to the overlay-ordered workspaces:
 
 ```bash
 ros1_workspaces="/opt/ros/noetic ~/a_first_ros1_workspace ~/main_ros1_overlay"
@@ -37,6 +37,8 @@ In this case the script will set `ROS_LOCALHOST_ONLY` for ROS 2
 
 If the settings are stored then any new terminal will have the same settings as the previous one, assuming that `ros_management.bash` is sourced in your `.bashrc` file.
 
+The idea is that when working on a given robot, or a given ROS version, the special setting is only done once even if new terminals are open afterwards (it may happen when using ROS).
+
 Manual calls to `rosXws` or `ros_restrict` will override `-ros1/2` and `-lo` arguments in new terminals.
 
 Settings are stored in `~/.ros_management_auto_init`, delete this file to restore the default behavior
@@ -49,7 +51,6 @@ ros1ws # ros1 is now active and will be active in new terminals
 source /path/to/ros_management.bash -ros2 -k -p # also activate prompt
 ros1ws # ros1 is now active and will be active in new terminals, [ROS1] is displayed as well
 ```
-
 
 ## Network interface functions
 
@@ -89,6 +90,14 @@ A few functions, that are designed for use at Centrale Nantes, also exist:
 - `ros_turtle`: configure ROS 2 to use the same ROS_DOMAIN_ID as our Turtlebots and restrict to Wifi
 
 Any similar function can be defined and used with the custom prompt and stored settings. The function should start with `ros_` and are assumed to be exclusive (only the latest called `ros_` function is stored for future terminals).
+
+## `colcon` shortcuts (ROS 2)
+
+In ROS 1, `catkin build` could be run from anywhere inside the workspace while in ROS 2, `colcon build` has to be called from the root (where directories `src`, `build` and `install` lie). In practice, calling `colcon build` from e.g. your package directory will actually use this folder as the workspace.
+
+The command `colbuild` offers the same usage as `catkin`: it calls `colcon build --symlink-install` and can be run from anywhere inside the workspace. It provides two options:
+- `-p`: similar to `--packages-select`
+- `-pu`: similar to `--packages-up-to`
 
 ## QtCreator configuration
 
