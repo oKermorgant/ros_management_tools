@@ -415,9 +415,9 @@ ros_restrict()
                 </userTransports>
             </rtps>
         </participant>
-    </profiles>" > /tmp/fastrtps_interface_restriction.xml
+    </profiles>" > /tmp/fastrtps_interface_restriction_$USER.xml
     # tell where to look
-    export FASTRTPS_DEFAULT_PROFILES_FILE=/tmp/fastrtps_interface_restriction.xml
+    export FASTRTPS_DEFAULT_PROFILES_FILE=/tmp/fastrtps_interface_restriction_$USER.xml
 
     # Cyclone DDS https://dds-demonstrators.readthedocs.io/en/latest/Teams/1.Hurricane/setupCycloneDDS.html
     if [[ -n $legacy_cyclonedds ]]; then
