@@ -331,7 +331,7 @@ ros_restrict()
         local interface=$(for dev in /sys/class/net/*; do [ -e "$dev"/wireless ] && echo ${dev##*/}; done)
     fi
     if [[ $1 == "ETH" ]]; then
-        local interface=$(ip link | awk -F: '$0 !~ "lo|vir|wl|^[^0-9]"{print $2;getline}')
+        local interface=$(ip link | awk -F: '$0 !~ "lo|vbox|vir|wl|^[^0-9]"{print $2;getline}')
         local interface=$(for dev in $interface; do [ ! -e /sys/class/net/"$dev"/wireless ] && echo ${dev##*/}; done)
     fi
     if [[ $1 == "lo" ]]; then
@@ -479,6 +479,13 @@ for ws in "$ros2_workspaces"; do
     fi
 done
 colcon build --symlink-install --packages-select ros1_bridge --cmake-force-configure --continue-on-error
+}
+
+# restart daemon
+ros2restart()
+{
+ros2 daemon stop
+ros2 daemon start
 }
 
 
