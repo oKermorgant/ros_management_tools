@@ -181,32 +181,37 @@ do
 done
 }
 
-# Equivalent of roscd but jumps to the source (also, no completion)
+# Equivalent of roscd but jumps to the source
 ros2cd()
 {
-local ws=$ros2_workspaces
-local prev=""
-local subs="/src /install /devel /"
-local sub
-local key="<name>$1</name>"
-local res
-while [ "$ws" != "$prev" ]
-do
-    # Make it to the source directory if possible
-    for sub in $subs
-    do
-    if [ -d "${ws##* }$sub" ]; then
-        res=$(grep -r --include \*package.xml $key ${ws##* }$sub )
-        if [[ $res != "" ]]; then
-        cd ${res%%/package.xml*}
+    local ws=$ros2_workspaces
+    local dest=$(ros2 pkg prefix $1 --share)
+    if [[ $dest == *"not found" ]]; then
+        echo "Could not find package $1"
         return
-        fi
     fi
-    done
-    prev="$ws"
-    ws="${ws% *}"
-done
-echo "Could not find package $1"
+
+    if [[ $dest == *"/install/"* ]]; then
+    for ws in $ros2_workspaces
+        do
+            # identify if we are here
+            if [[ "$dest" != "$ws"* ]]; then
+                continue
+            fi
+            # Make it to the source directory if possible
+            if [[ ! -d "${ws}/src" ]]; then
+                continue
+            fi
+
+            # Find the source with sym link if possible
+            local abs_pkg=$(readlink ${dest}/package.xml)
+            if [[ $abs_pkg != "" ]]; then
+                dest=$(dirname $abs_pkg)
+                break
+            fi
+        done
+    fi
+    cd $dest
 }
 
 # do a Bloom release for a given distro
@@ -218,98 +223,98 @@ bloom-auto()
 # Activate ROS 1 ws
 ros1ws()
 {
-# Clean ROS 2 paths
-ros_management_remove_all_paths $ros2_workspaces
-unset ROS_DISTRO
+    # Clean ROS 2 paths
+    ros_management_remove_all_paths $ros2_workspaces
+    unset ROS_DISTRO
 
-# register ROS 1 workspaces
-local ws
-for ws in $ros1_workspaces
-do
-    ros_management_register_workspace $ws
-done
-for ws in $ros1_workspaces
-do
-    ros_management_register_workspace $ws
-done
+    # register ROS 1 workspaces
+    local ws
+    for ws in $ros1_workspaces
+    do
+        ros_management_register_workspace $ws
+    done
+    for ws in $ros1_workspaces
+    do
+        ros_management_register_workspace $ws
+    done
 
-if [ -f /usr/share/gazebo/setup.sh ]; then
-    source /usr/share/gazebo/setup.sh
-fi
+    if [ -f /usr/share/gazebo/setup.sh ]; then
+        source /usr/share/gazebo/setup.sh
+    fi
 
-# change prompt if you like (actually not by default)
-if [[ $# -eq 0 ]]; then
-    ros_management_prompt
-    ros_management_add ros1ws
-fi
+    # change prompt if you like (actually not by default)
+    if [[ $# -eq 0 ]]; then
+        ros_management_prompt
+        ros_management_add ros1ws
+    fi
 }
 
 # Activate ROS 2 ws
 ros2ws()
 {
-# Clean ROS 1 paths
-ros_management_remove_all_paths $ros1_workspaces
-unset ROS_DISTRO
+    # Clean ROS 1 paths
+    ros_management_remove_all_paths $ros1_workspaces
+    unset ROS_DISTRO
 
-# register ROS 2 workspaces
-local ws
-for ws in $ros2_workspaces
-do
-    ros_management_register_workspace $ws
-done
+    # register ROS 2 workspaces
+    local ws
+    for ws in $ros2_workspaces
+    do
+        ros_management_register_workspace $ws
+    done
 
-# add base ROS 1 libs in case some ROS 2 pkg need them
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/ros/noetic/lib
-
-
-if [ -f /usr/share/gazebo/setup.sh ]; then
-    source /usr/share/gazebo/setup.sh
-fi
+    # add base ROS 1 libs in case some ROS 2 pkg need them
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/ros/noetic/lib
 
 
-# update ROS prompt
-if [[ $# -eq 0 ]]; then
-    ros_management_prompt
-    ros_management_add ros2ws
-fi
+    if [ -f /usr/share/gazebo/setup.sh ]; then
+        source /usr/share/gazebo/setup.sh
+    fi
+
+
+    # update ROS prompt
+    if [[ $# -eq 0 ]]; then
+        ros_management_prompt
+        ros_management_add ros2ws
+    fi
 }
 
 # some shortcuts
 colbuild()
 {
-# Clean ROS 1 paths
-ros_management_remove_all_paths $ros1_workspaces
-unset ROS_DISTRO
+    # Clean ROS 1 paths
+    ros_management_remove_all_paths $ros1_workspaces
+    unset ROS_DISTRO
 
-# source ROS 2 workspaces up to this one (not including)
-unset AMENT_PREFIX_PATH
-unset AMENT_CURRENT_PREFIX
-unset COLCON_PREFIX_PATH
+    # source ROS 2 workspaces up to this one (not including)
+    unset AMENT_PREFIX_PATH
+    unset AMENT_CURRENT_PREFIX
+    unset COLCON_PREFIX_PATH
 
-local ws
-local PWD="$(pwd)/"
-for ws in $ros2_workspaces; do
+    local ws
+    local PWD="$(pwd)/"
+    for ws in $ros2_workspaces; do
 
-    # if in this workspace, run colcon
-    if [[ "$PWD" = "$ws/"* ]]; then
-        local cmd="colcon build --symlink-install --continue-on-error"
-        # add all args, change -p to --packages-select and -pu to --packages-up-to
-        for arg in $@; do
-            case "$arg" in
-                ("-p") cmd="$cmd --packages-select" ;;
-                ("-pu") cmd="$cmd --packages-up-to" ;;
-                (*) cmd="$cmd $arg" ;;
-            esac
-        done
+        # if in this workspace, run colcon
+        if [[ "$PWD" = "$ws/"* ]]; then
+            local cmd="colcon build --symlink-install --continue-on-error"
+            # add all args, change -p to --packages-select and -pu to --packages-up-to
+            for arg in $@; do
+                case "$arg" in
+                    ("-p") cmd="$cmd --packages-select" ;;
+                    ("-pu") cmd="$cmd --packages-up-to" ;;
+                    (*) cmd="$cmd $arg" ;;
+                esac
+            done
 
-        if [ -d "$ws/src/ros1_bridge" ]; then
-            cmd="$cmd  --packages-skip ros1_bridge"
+            if [ -d "$ws/src/ros1_bridge" ]; then
+                cmd="$cmd  --packages-skip ros1_bridge"
+            fi
+            (cd $ws;eval $cmd)
         fi
-        (cd $ws;eval $cmd)
-    fi
-    # source anyway
-    ros_management_register_workspace $ws
-done
+        # source anyway
+        ros_management_register_workspace $ws
+    done
 }
 
 # restrict FastRTPS / Cyclone DDS to this network interface
@@ -490,10 +495,6 @@ ros2 daemon start
 
 
 
-
-
-
-
 # special functions for network setup on Centrale Nantes's robots
 # show several usages of ros_restrict
 
@@ -559,4 +560,8 @@ else
     if [[ $ROS_MANAGEMENT_ARGS == *"-lo"* ]]; then
         ros_restrict lo
     fi
+fi
+
+if [[ $ROS_VERSION -eq 2 ]]; then
+    complete -W "$(ros2 pkg list)" ros2cd
 fi
