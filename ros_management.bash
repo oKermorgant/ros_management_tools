@@ -247,6 +247,10 @@ ros1ws()
         ros_management_prompt
         ros_management_add ros1ws
     fi
+
+    if [ -z $ROS_DISTRO ]; then
+        export ROS_DISTRO="<unknown>"
+    fi
 }
 
 # Activate ROS 2 ws

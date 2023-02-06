@@ -220,7 +220,7 @@ for line in cmake:
     elif 'catkin_package' in line:
         if not RosBuild.version:
             RosBuild.version = 1
-    elif 'ament_package' in line:
+    elif 'ament_package' in line or 'ament_auto_package':
         if not RosBuild.version:
             RosBuild.version = 2
 
