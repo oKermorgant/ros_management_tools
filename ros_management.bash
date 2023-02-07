@@ -223,6 +223,8 @@ bloom-auto()
 # Activate ROS 1 ws
 ros1ws()
 {
+    export ROS_VERSION=1
+    export ROS_DISTRO="<unknown>"
     # Clean ROS 2 paths
     ros_management_remove_all_paths $ros2_workspaces
     unset ROS_DISTRO
@@ -246,10 +248,6 @@ ros1ws()
     if [[ $# -eq 0 ]]; then
         ros_management_prompt
         ros_management_add ros1ws
-    fi
-
-    if [ -z $ROS_DISTRO ]; then
-        export ROS_DISTRO="<unknown>"
     fi
 }
 
