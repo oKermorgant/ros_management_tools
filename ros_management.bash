@@ -500,6 +500,21 @@ ros2 daemon start
 # special functions for network setup on Centrale Nantes's robots
 # show several usages of ros_restrict
 
+# configure ROS_IP and ROS_MASTER_URI
+# give a network interface and the ROS_MASTER_URI to be used, if not the localhost
+ros_master()
+{
+export ROS_IP=$(ip addr show $1 | grep "inet\b" | awk '{print $2}' | cut -d/ -f1)
+
+if [[ $# -eq 2 ]]; then
+    export ROS_MASTER_URI="http://$2:11311"
+else
+    export ROS_MASTER_URI="http://$ROS_IP:11311"
+fi
+
+ros_management_add ros_master $1 $2
+}
+
 ros_reset()
 {
     # reset to standard network settings
@@ -518,8 +533,7 @@ ros_baxter()
     # ROS 1 uses Baxter's ROSMASTER through ethernet
     local ethernet_interface=$(ip link | awk -F: '$0 !~ "lo|vir|wl|^[^0-9]"{print $2;getline}')
     local ethernet_interface=$(for dev in $ethernet_interface; do [ ! -e /sys/class/net/"$dev"/wireless ] && echo ${dev##*/}; done)
-    export ROS_IP=$(ip addr show $ethernet_interface | grep "inet\b" | awk '{print $2}' | cut -d/ -f1)
-    export ROS_MASTER_URI=http://baxter.local:11311
+    ros_master $ethernet_interface "baxter.local"
 
     # force ROS 2 on localhost, Baxter runs on ROS 1 anyway
     ros_restrict lo --nohistory
