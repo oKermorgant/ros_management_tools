@@ -504,6 +504,13 @@ ros2 daemon start
 # give a network interface and the ROS_MASTER_URI to be used, if not the localhost
 ros_master()
 {
+
+if [[ $# -eq 0 ]]; then
+    unset ROS_MASTER_URI
+    unset ROS_IP
+    return
+fi
+
 export ROS_IP=$(ip addr show $1 | grep "inet\b" | awk '{print $2}' | cut -d/ -f1)
 
 if [[ $# -eq 2 ]]; then
