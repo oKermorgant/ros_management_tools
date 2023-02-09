@@ -88,6 +88,7 @@ ros_restrict eth0
 A few functions, that are designed for use at Centrale Nantes, also exist:
 - `ros_baxter`: configure ROS 1 to connect on Baxter's ROSMASTER through ethernet, restrict ROS 2 to localhost
 - `ros_turtle`: configure ROS 2 to use the same ROS_DOMAIN_ID as our Turtlebots and restrict to Wifi
+- `ros_master`: configure ROS 1 (`ROS_IP` / `ROS_MASTER_URI`) on a given network interface
 
 Any similar function can be defined and used with the custom prompt and stored settings. The function should start with `ros_` and are assumed to be exclusive (only the latest called `ros_` function is stored for future terminals).
 

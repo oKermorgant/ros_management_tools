@@ -508,6 +508,8 @@ ros_master()
 if [[ $# -eq 0 ]]; then
     unset ROS_MASTER_URI
     unset ROS_IP
+    ros_management_prompt __CLEAN
+    ros_management_add ros_master
     return
 fi
 
@@ -519,6 +521,7 @@ else
     export ROS_MASTER_URI="http://$ROS_IP:11311"
 fi
 
+ros_management_prompt $1
 ros_management_add ros_master $1 $2
 }
 
