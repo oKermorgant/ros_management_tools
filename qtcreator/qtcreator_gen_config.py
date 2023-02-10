@@ -7,18 +7,16 @@ from time import localtime, sleep
 from subprocess import check_output, Popen
 import argparse
 
-try:
-    input = raw_input
-except:
-    pass
 
 def dict_replace(s, d):
     for key in d:
         s = s.replace(key, d[key])
     return s
 
+
 def extract(s,left='(',right=')'):
     return s.partition(left)[2].partition(right)[0].strip()
+
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.description = 'A script to generate Qt Creator configuration file for CMake projects.'
@@ -73,6 +71,7 @@ class Version:
         if len(s) != 3:
             s += [0]*(3-len(s))
         return s
+
     def rep(self):
         return '.'.join(str(v) for v in self.s)
 
@@ -93,12 +92,13 @@ class Version:
 # get ID's on this computer and Qt Creator version
 def readConfig():
     with open(envID_file) as f:
-        envID = f.read().split('Settings\EnvironmentId=@ByteArray(')[1].split(')')[0]
+        envID = f.read().split('Settings\\EnvironmentId=@ByteArray(')[1].split(')')[0]
     with open(confID_file) as f:
         data = f.read()
         confID = data.split('<value type="QString" key="PE.Profile.Id">')[1].split('<')[0]
         qtcVersion = Version(data.split('<!-- Written by QtCreator ')[1].split(', ')[0])
     return envID, confID, qtcVersion
+
 
 qt_proc = None
 
@@ -119,7 +119,8 @@ if qt_proc is not None:
     try:
         qt_proc.kill()
         qt_proc.communicate()
-    except: pass
+    except:
+        pass
 
 if not os.path.exists(cmake_file):
     print('Could not find CMakeLists.txt, exiting')
@@ -147,9 +148,11 @@ package = ''
 targets = []
 build_type = None
 
+
 class RosBuild:
     version = None
     tool = ''
+
     @staticmethod
     def find_ws_root(pkg_dir):
 
@@ -198,14 +201,17 @@ class RosBuild:
             bin_dir = build_dir
         return build_dir, bin_dir, install_dir
 
+
 print('Loading ' + os.path.abspath(cmake_file) + '\n')
+
 
 has_lib = False
 for line in cmake:
     
     # remove comments anyway
     line = line.split('#')[0]
-    while ' (' in line: line = line.replace(' (', '(')
+    while ' (' in line:
+        line = line.replace(' (', '(')
     
     if 'project(' in line:
         package = extract(line)
@@ -217,11 +223,10 @@ for line in cmake:
             targets.append(target)
     elif 'CMAKE_BUILD_TYPE' in line:
         build_type = extract(line).split()[-1]
-    elif 'catkin_package' in line:
-        if not RosBuild.version:
+    elif not RosBuild.version:
+        if 'catkin_package' in line:
             RosBuild.version = 1
-    elif 'ament_package' in line or 'ament_auto_package':
-        if not RosBuild.version:
+        elif 'ament_package' in line or 'ament_auto_package' in line:
             RosBuild.version = 2
 
 if len(targets) == 0 and not has_lib:
@@ -231,7 +236,7 @@ if len(targets) == 0 and not has_lib:
 bin_dir = build_dir
 install_dir = '/usr/local'
 
-if RosBuild.version and not '-b' in sys.argv:
+if RosBuild.version and '-b' not in sys.argv:
 
     ros_dir = RosBuild.find_ws_root(os.path.abspath(cmake_dir))
     if ros_dir is None:
