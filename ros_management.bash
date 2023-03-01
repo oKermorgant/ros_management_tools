@@ -301,10 +301,28 @@ colbuild()
         if [[ "$PWD" = "$ws/"* ]]; then
             local cmd="colcon build --symlink-install --continue-on-error"
             # add all args, change -p to --packages-select and -pu to --packages-up-to
+            # also add -t / --this to compile the package we are in
             for arg in $@; do
                 case "$arg" in
                     ("-p") cmd="$cmd --packages-select" ;;
                     ("-pu") cmd="$cmd --packages-up-to" ;;
+                    ("-t");&
+                    ("--this")
+                    # identify this package
+                    local this_dir=$PWD
+                    while [[ ! -e "$this_dir/package.xml" ]]
+                    do
+                        this_dir=$(dirname $this_dir)
+                        if [[ "$this_dir" = "$ws"* ]]; then
+                            # we went up to the workspace root: could not identify package
+                            break
+                        fi
+                    done
+                    if [[ -e "$this_dir/package.xml" ]]; then
+                        local pkg=$(grep -oP '(?<=<name>).*?(?=</name>)' $this_dir/package.xml)
+                        cmd="$cmd --packages-select $pkg"
+                    fi
+                    ;;
                     (*) cmd="$cmd $arg" ;;
                 esac
             done
@@ -443,50 +461,6 @@ ros_restrict()
     fi
 }
 
-# shortcut to build ros1_bridge without messing system paths
-# assumes we are in our ROS 2 workspace directory / recompiles ros1_bridge
-# make sure it is worth it, this is quite long...
-ros1bridge_recompile()
-{
-if [ ! -d "src/ros1_bridge" ]; then
-    echo "ros1_bridge is not in this workspace - is it actually a ROS 2 workspace?"
-    return
-fi
-# clean environment variables
-ros_management_remove_all_paths "$ros1_workspaces $ros2_workspaces"
-unset ROS_DISTRO
-# register ROS 2 overlays before the ros1_bridge overlay
-colbuild
-
-# register base ROS 1 installation
-unset ROS_DISTRO
-local ros1_base=${ros1_workspaces% *}
-ros_management_register_workspace $ros1_base
-# register base ROS 2 installation
-unset ROS_DISTRO
-local ros2_base=${ros2_workspaces% *}
-ros_management_register_workspace $ros2_base
-
-# register ROS 1 overlays
-unset ROS_DISTRO
-for ws in $ros1_workspaces; do
-    if [[ "$ws" != "$ros1_base" ]]; then
-        ros_management_register_workspace $ws
-    fi
-done
-
-# register ROS 2 overlays up to the ros1_bridge overlay
-unset ROS_DISTRO
-for ws in "$ros2_workspaces"; do
-    if [[ "$ws" != "$ros2_base" ]]; then
-       ros_management_register_workspace $ws
-       if [[ "$ws" = "$bridge_overlay"* ]]; then
-       break
-       fi
-    fi
-done
-colcon build --symlink-install --packages-select ros1_bridge --cmake-force-configure --continue-on-error
-}
 
 # restart daemon
 ros2restart()

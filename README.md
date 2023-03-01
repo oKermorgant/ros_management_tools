@@ -99,6 +99,7 @@ In ROS 1, `catkin build` could be run from anywhere inside the workspace while i
 The command `colbuild` offers the same usage as `catkin`: it calls `colcon build --symlink-install` and can be run from anywhere inside the workspace. It provides two options:
 - `-p`: similar to `--packages-select`
 - `-pu`: similar to `--packages-up-to`
+- `-t`, `--this`: similar to `--packages-select` the package that includes the current dir
 
 ## QtCreator configuration
 
