@@ -313,7 +313,7 @@ colbuild()
                     while [[ ! -e "$this_dir/package.xml" ]]
                     do
                         this_dir=$(dirname $this_dir)
-                        if [[ "$this_dir" = "$ws"* ]]; then
+                        if [[ "$this_dir" = "$ws" ]]; then
                             # we went up to the workspace root: could not identify package
                             break
                         fi
@@ -330,7 +330,7 @@ colbuild()
             if [ -d "$ws/src/ros1_bridge" ]; then
                 cmd="$cmd  --packages-skip ros1_bridge"
             fi
-            (cd $ws;eval $cmd)
+              (cd $ws;eval $cmd)
         fi
         # source anyway
         ros_management_register_workspace $ws
@@ -357,7 +357,7 @@ ros_restrict()
     fi
     if [[ $1 == "ETH" ]]; then
         local interface=$(ip link | awk -F: '$0 !~ "lo|vbox|vir|wl|^[^0-9]"{print $2;getline}')
-        local interface=$(for dev in $interface; do [ ! -e /sys/class/net/"$dev"/wireless ] && echo ${dev##*/}; done)
+        local interface=$(for dev in $ethernet_interface; do [[ ! -e /sys/class/net/"$dev"/wireless && $(grep 1 /sys/class/net/"$dev"/carrier) ]] && echo ${dev##*/}; done)
     fi
     if [[ $1 == "lo" ]]; then
         export ROS_LOCALHOST_ONLY=1
@@ -515,8 +515,10 @@ ros_reset()
 ros_baxter()
 {
     # ROS 1 uses Baxter's ROSMASTER through ethernet
+    # get all network interfaces
     local ethernet_interface=$(ip link | awk -F: '$0 !~ "lo|vir|wl|^[^0-9]"{print $2;getline}')
-    local ethernet_interface=$(for dev in $ethernet_interface; do [ ! -e /sys/class/net/"$dev"/wireless ] && echo ${dev##*/}; done)
+    # find valid ones on ETH
+    local ethernet_interface=$(for dev in $ethernet_interface; do [[ ! -e /sys/class/net/"$dev"/wireless && $(grep 1 /sys/class/net/"$dev"/carrier) ]] && echo ${dev##*/}; done)
     ros_master $ethernet_interface "baxter.local"
 
     # force ROS 2 on localhost, Baxter runs on ROS 1 anyway
