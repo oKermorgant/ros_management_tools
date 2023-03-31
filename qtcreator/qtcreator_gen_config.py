@@ -4,7 +4,7 @@ import sys
 import os
 from shutil import rmtree
 from time import localtime, sleep
-from subprocess import check_output, Popen
+from subprocess import check_output, Popen, CalledProcessError
 import argparse
 
 
@@ -24,31 +24,7 @@ parser.add_argument('-c', metavar='cmakelist_dir', help='Folder of CMakeLists.tx
 parser.add_argument('-b', metavar='build_dir', help='Relative build folder',default='./build')
 parser.add_argument('--clean', action='store_true', default=False)
 parser.add_argument('--yes', action='store_true', default=False)
-parser.add_argument('-r', action='store_true', default=False, help="Runs this script recursively from this folder")
 args = parser.parse_args()
-
-if args.r:
-
-    ignore = ['build','install','devel']
-
-    def do_dir(d):
-
-        if 'CMakeLists.txt' in os.listdir(d) and 'CMakeLists.txt.user' in os.listdir(d):
-            print('Calling gen_qtcreator in ' + d)
-            cmd = 'python3 ' + os.path.abspath(__file__) + ' --clean -c ' + d
-            try:
-                check_output(cmd.split())
-            except:
-                pass
-            return
-
-        for li in os.listdir(d):
-            d_new = d + '/' + li
-            if os.path.isdir(d_new) and li not in ignore and li[0] != '.':
-                do_dir(d_new)
-
-    do_dir('.')
-    sys.exit(0)
 
 if args.clean:
     args.yes = True
@@ -145,7 +121,6 @@ with open(cmake_file) as f:
     cmake = f.read().splitlines()
     
 package = ''
-targets = []
 build_type = None
 
 
@@ -204,8 +179,6 @@ class RosBuild:
 
 print('Loading ' + os.path.abspath(cmake_file) + '\n')
 
-
-has_lib = False
 for line in cmake:
     
     # remove comments anyway
@@ -215,22 +188,14 @@ for line in cmake:
     
     if 'project(' in line:
         package = extract(line)
-    elif 'add_library(' in line:
-        has_lib = True
-    elif 'add_executable(' in line:
-        target = extract(line,'(',' ')
-        if '$' not in target:
-            targets.append(target)
     elif 'CMAKE_BUILD_TYPE' in line:
         build_type = extract(line).split()[-1]
+        print(f'  Found build type "{build_type}" in CMakeLists.txt')
     elif not RosBuild.version:
         if 'catkin_package' in line:
             RosBuild.version = 1
         elif 'ament_package' in line or 'ament_auto_package' in line:
             RosBuild.version = 2
-
-if len(targets) == 0 and not has_lib:
-    print('  no C++ targets for ' + package)
 
 # check build directory - update if ROS unless manually set
 bin_dir = build_dir
@@ -280,42 +245,48 @@ time_str = '{}-{}-{}T{}:{}:{}'.format(*ct_str)
 
 replace_dict = {}
 replace_dict['<gen_version/>'] = qtcVersion.rep()
-replace_dict['<gen_time/>'] =  '{}-{}-{}T{}:{}:{}'.format(*ct_str)
+replace_dict['<gen_time/>'] = '{}-{}-{}T{}:{}:{}'.format(*ct_str)
 replace_dict['<gen_envID/>'] = envID
 replace_dict['<gen_cmake_dir/>'] = cmake_dir
 
 replace_dict['<gen_build_dir/>'] = build_dir
 replace_dict['<gen_install_dir/>'] = install_dir
 replace_dict['<gen_conf/>'] = confID
-replace_dict['<gen_target_count/>'] = str(len(targets))
-replace_dict['<gen_force_build_type/>'] = ''
+
 if build_type is None:
-    build_type = 'Debug'
-    if qtcVersion >= '6.0':
-        replace_dict['<gen_force_build_type/>'] = f'<value type="QString">CMAKE_BUILD_TYPE:STRING={build_type}</value>'    
+
+    # try to identify in build directory
+    cmake_cache = f'{build_dir}/CMakeCache.txt'
+    if os.path.exists(cmake_cache):
+        with open(cmake_cache) as f:
+            cache = f.read().splitlines()
+        for line in cache:
+            if line.startswith('CMAKE_BUILD_TYPE'):
+                build_type = line.split('=')[-1]
+                print(f'  Found build type "{build_type}" in CMakeCache.txt')
+                break
+
+    if build_type is None:
+        build_type = 'Debug'
+
 replace_dict['<gen_cmake_build_type/>'] = build_type
 
 config = dict_replace(config, replace_dict)
-
-# target blocks
-start = config.find('<!-- gen_target_begin -->')
-start += config[start:].find('\n') + 1
-end  = config.find('<!-- gen_target_end -->')-1
-
-target_block = [config[start:end] for target in targets]
-
-for i,target in enumerate(targets):
-    replace_dict = {}
-    replace_dict['<gen_target_nb/>'] = str(i)
-    replace_dict['<gen_target_exec/>'] = target
-    replace_dict['<gen_bin_dir/>'] = bin_dir
-    target_block[i] = dict_replace(target_block[i], replace_dict)
-    print('  found target:    ' + target)
-
-config = config.replace(config[start:end], '\n'.join(target_block))
 
 config = '\n'.join(line for line in config.splitlines() if line.strip() != '' and '!--' not in line)
 
 with open(cmake_user, 'w') as f:
     f.write(config)
 
+# also create VS code helpers
+try:
+    code = check_output(['which','code'])
+    code_dir = cmake_dir + '/.vscode'
+    code_settings = code_dir + '/settings.json'
+    if not os.path.exists(code_dir):
+        os.mkdir(code_dir)
+    with open(code_settings, 'w') as f:
+        f.write(f'{{\n  "cmake.buildDirectory": "{build_dir}",\n   "editor.mouseWheelZoom": true}}\n')
+
+except CalledProcessError:
+    code = None

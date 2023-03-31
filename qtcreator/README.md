@@ -14,4 +14,3 @@ If the configuration file already exists, it will ask for confirmation.
 - `-b <path>` : build folder (relative to CMake file) to use, for raw CMake projects (default `./build`)
 - `--clean` : deletes the build folder before creating it again (default False)
 - `--yes` : do not ask for confirmation if the `CMakeLists.txt.user` file already exists
-- `-r` : run the script recursively from this folder
