@@ -312,11 +312,11 @@ colbuild()
                     local this_dir=$PWD
                     while [[ ! -e "$this_dir/package.xml" ]]
                     do
-                        this_dir=$(dirname $this_dir)
-                        if [[ "$this_dir" = "$ws" ]]; then
+                        if [[ "$ws" = "$this_dir/"* ]]; then
                             # we went up to the workspace root: could not identify package
                             break
                         fi
+                        this_dir=$(dirname $this_dir)
                     done
                     if [[ -e "$this_dir/package.xml" ]]; then
                         local pkg=$(grep -oP '(?<=<name>).*?(?=</name>)' $this_dir/package.xml)

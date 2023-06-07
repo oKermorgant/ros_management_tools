@@ -21,8 +21,9 @@ If sourced with `-ros1` or `-ros2`, will directly activate the given version and
 #### Modify the prompt with `-p`
 
 If sourced with `-p`, the script will update the bash prompt in order to know:
-    - whether the non-prefered ROS version is active (if any)
-    - whether ROS 2 is restricted to a specific network interface
+
+- whether the non-prefered ROS version is active (if any)
+- whether ROS 2 is restricted to a specific network interface
     
 ```bash
 source /path/to/ros_management.bash -ros1 -p # default to ROS 1, thus [ROS1] is not displayed in the prompt
@@ -87,8 +88,8 @@ ros_restrict eth0
 
 A few functions, that are designed for use at Centrale Nantes, also exist:
 - `ros_baxter`: configure ROS 1 to connect on Baxter's ROSMASTER through ethernet, restrict ROS 2 to localhost
-- `ros_turtle`: configure ROS 2 to use the same ROS_DOMAIN_ID as our Turtlebots and restrict to Wifi
-- `ros_master`: configure ROS 1 (`ROS_IP` / `ROS_MASTER_URI`) on a given network interface
+- `ros_turtle #turtle`: configure ROS 2 to use the same ROS_DOMAIN_ID as our Turtlebots and restrict to Wifi
+- `ros_master #interface #ros_master_uri`: configure ROS 1 (`ROS_IP` / `ROS_MASTER_URI`) on a given network interface
 
 Any similar function can be defined and used with the custom prompt and stored settings. The function should start with `ros_` and are assumed to be exclusive (only the latest called `ros_` function is stored for future terminals).
 
