@@ -341,7 +341,7 @@ colbuild()
 ros_restrict()
 {
     if [[ $# -eq 0 ]]; then
-        echo "ros_restrict: give a network interface"
+        echo "ros_restrict: give a network interface or ETH / WIFI / lo (localhost)"
         return
     fi
     
