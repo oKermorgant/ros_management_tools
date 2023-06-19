@@ -540,11 +540,15 @@ ros_turtle()
     export ROS_DOMAIN_ID=$1
 
     # force ROS 2 on wifi, do not save it in history
-    ros_restrict WIFI --nohistory
+    if [[ $# -eq 1 ]]; then
+        ros_restrict WIFI --nohistory
+    else
+        ros_restrict ETH --nohistory
+    fi
 
     # prompt and store
     ros_management_prompt turtlebot$1 $((111+$1))
-    ros_management_add ros_turtle $1
+    ros_management_add ros_turtle $1 $2
 }
 
 # deal with auto init
