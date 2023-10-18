@@ -188,9 +188,11 @@ for line in cmake:
     
     if 'project(' in line:
         package = extract(line)
-    elif 'CMAKE_BUILD_TYPE' in line:
-        build_type = extract(line).split()[-1]
-        print(f'  Found build type "{build_type}" in CMakeLists.txt')
+    elif 'CMAKE_BUILD_TYPE' in line and 'set' in line:
+        if line.index('set') < line.index('CMAKE_BUILD_TYPE'):
+            print(extract(line))
+            build_type = extract(line).split()[1].strip('"').strip("'")
+            print(f'  Found build type "{build_type}" in CMakeLists.txt')
     elif not RosBuild.version:
         if 'catkin_package' in line:
             RosBuild.version = 1
