@@ -212,7 +212,7 @@ if RosBuild.version and '-b' not in sys.argv:
     build_dir, bin_dir, install_dir = RosBuild.get_dirs(package)
 
     if not os.path.exists(build_dir):
-        print(f'You will have to run "{RosBuild.tool} build" before loading the project in Qt Creator')
+        print(f'You will have to run "{RosBuild.tool} build" before loading the project in your IDE')
 
 elif not os.path.exists(build_dir):
     os.mkdir(build_dir)

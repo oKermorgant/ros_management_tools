@@ -5,7 +5,7 @@
 # Olivier Kermorgant
 
 # ROS 1 / 2 workspaces are defined in overlay ordering
-# ex: ros1_workspaces="/opt/ros/noetic $HOME/ros_ws1 $HOME/ros_ws2"
+# ex: ros1_workspaces="/opt/ros/noetic $HOME/ros_underlay $HOME/ros_overlay"
 
 # replace tilde by home dir in paths
 export ros1_workspaces="${ros1_workspaces//'~'/$HOME}"
@@ -17,7 +17,7 @@ ROS_MANAGEMENT_ARGS="$*"
 
 
 # add a command for the next auto-init
-ros_management_add()
+__ros_management_add()
 {
     if [[ ! $ROS_MANAGEMENT_ARGS == *"-k"* ]]; then
         return
@@ -48,7 +48,7 @@ ros_management_add()
 
 # add ROS info to the prompt in order to know what version we use
 # also indicates on which robot we are working, if any
-ros_management_prompt()
+__ros_management_prompt()
 {
     if [[ $ROS_MANAGEMENT_ARGS != *"-p"* ]] || [[ -z $(which rosversion) ]]; then
         return
@@ -130,7 +130,7 @@ ros_management_prompt()
 
 # Takes a path string separated with colons and a list of sub-paths
 # Removes path elements containing sub-paths
-ros_management_remove_paths()
+__ros_management_remove_paths()
 {
 IFS=':' read -ra PATHES <<< "$1"
 local THISPATH=""
@@ -151,20 +151,8 @@ done
 echo $THISPATH | cut -c2-
 }
 
-# Takes a list of sub-paths
-# Updates ROS-related system paths by removing all elements containing sub-paths
-ros_management_remove_all_paths()
-{
-    export AMENT_PREFIX_PATH=$(ros_management_remove_paths "$AMENT_PREFIX_PATH" $@)
-    export AMENT_CURRENT_PREFIX=$(ros_management_remove_paths "$AMENT_CURRENT_PREFIX" $@)
-    export PYTHONPATH=$(ros_management_remove_paths "$PYTHONPATH" $@)
-    export CMAKE_PREFIX_PATH=$(ros_management_remove_paths "$CMAKE_PREFIX_PATH" $@)
-    export PATH=$(ros_management_remove_paths "$PATH" $@)
-    export LD_LIBRARY_PATH=$(ros_management_remove_paths "$LD_LIBRARY_PATH" $@)
-}
-
-# Register a single ROS 1 / 2 workspace, try to source in order : ws > ws/install > ws/devel
-ros_management_register_workspace()
+# Register a single ROS 1 / 2 workspace, try to source in order : ws > ws/install > ws/devel (ROS 1)
+__ros_management_register_workspace()
 {
 local subs="/ /install/ /devel/"
 local sub
@@ -181,7 +169,7 @@ do
 done
 }
 
-# Equivalent of roscd but jumps to the source
+# Equivalent of roscd but jumps to the source, assuming a symlink install
 ros2cd()
 {
     local ws=$ros2_workspaces
@@ -214,30 +202,27 @@ ros2cd()
     cd $dest
 }
 
-# do a Bloom release for a given distro
-bloom-auto()
-{
-    bloom-release --ros-distro $1 --track $1 $(basename $PWD) $2
-}
-
 # Activate ROS 1 ws
 ros1ws()
 {
     export ROS_VERSION=1
     export ROS_DISTRO="<unknown>"
     # Clean ROS 2 paths
-    ros_management_remove_all_paths $ros2_workspaces
+    export PYTHONPATH=$(__ros_management_remove_paths "$PYTHONPATH" $ros2_workspaces)
+    export CMAKE_PREFIX_PATH=$(__ros_management_remove_paths "$CMAKE_PREFIX_PATH" $ros2_workspaces)
+    export PATH=$(__ros_management_remove_paths "$PATH" $ros2_workspaces)
+    export LD_LIBRARY_PATH=$(__ros_management_remove_paths "$LD_LIBRARY_PATH" $ros2_workspaces)
     unset ROS_DISTRO
 
     # register ROS 1 workspaces
     local ws
     for ws in $ros1_workspaces
     do
-        ros_management_register_workspace $ws
+        __ros_management_register_workspace $ws
     done
     for ws in $ros1_workspaces
     do
-        ros_management_register_workspace $ws
+        __ros_management_register_workspace $ws
     done
 
     if [ -f /usr/share/gazebo/setup.sh ]; then
@@ -246,8 +231,8 @@ ros1ws()
 
     # change prompt if you like (actually not by default)
     if [[ $# -eq 0 ]]; then
-        ros_management_prompt
-        ros_management_add ros1ws
+        __ros_management_prompt
+        __ros_management_add ros1ws
     fi
 }
 
@@ -255,14 +240,17 @@ ros1ws()
 ros2ws()
 {
     # Clean ROS 1 paths
-    ros_management_remove_all_paths $ros1_workspaces
+    export PYTHONPATH=$(__ros_management_remove_paths "$PYTHONPATH" $ros1_workspaces)
+    export CMAKE_PREFIX_PATH=$(__ros_management_remove_paths "$CMAKE_PREFIX_PATH" $ros1_workspaces)
+    export PATH=$(__ros_management_remove_paths "$PATH" $ros1_workspaces)
+    export LD_LIBRARY_PATH=$(__ros_management_remove_paths "$LD_LIBRARY_PATH" $ros1_workspaces)
     unset ROS_DISTRO
 
     # register ROS 2 workspaces
     local ws
     for ws in $ros2_workspaces
     do
-        ros_management_register_workspace $ws
+        __ros_management_register_workspace $ws
     done
 
     # add base ROS 1 libs in case some ROS 2 pkg need them
@@ -276,8 +264,8 @@ ros2ws()
 
     # update ROS prompt
     if [[ $# -eq 0 ]]; then
-        ros_management_prompt
-        ros_management_add ros2ws
+        __ros_management_prompt
+        __ros_management_add ros2ws
     fi
 }
 
@@ -285,7 +273,10 @@ ros2ws()
 colbuild()
 {
     # Clean ROS 1 paths
-    ros_management_remove_all_paths $ros1_workspaces
+    export PYTHONPATH=$(__ros_management_remove_paths "$PYTHONPATH" $ros1_workspaces)
+    export CMAKE_PREFIX_PATH=$(__ros_management_remove_paths "$CMAKE_PREFIX_PATH" $ros1_workspaces)
+    export PATH=$(__ros_management_remove_paths "$PATH" $ros1_workspaces)
+    export LD_LIBRARY_PATH=$(__ros_management_remove_paths "$LD_LIBRARY_PATH" $ros1_workspaces)
     unset ROS_DISTRO
 
     # source ROS 2 workspaces up to this one (not including)
@@ -330,10 +321,10 @@ colbuild()
             if [ -d "$ws/src/ros1_bridge" ]; then
                 cmd="$cmd  --packages-skip ros1_bridge"
             fi
-              (cd $ws;eval $cmd)
+            (cd $ws;eval $cmd)
         fi
         # source anyway
-        ros_management_register_workspace $ws
+        __ros_management_register_workspace $ws
     done
 }
 
@@ -395,8 +386,8 @@ ros_restrict()
 
         # only update history and prompt if raw call
         if [[ $# -eq 1 ]]; then
-            ros_management_add ros_restrict $interface
-            ros_management_prompt __CLEAN
+            __ros_management_add ros_restrict $interface
+            __ros_management_prompt __CLEAN
         fi
         return
     fi
@@ -456,8 +447,8 @@ ros_restrict()
 
     # only update history and prompt if raw call
     if [[ $# -eq 1 ]]; then
-        ros_management_add ros_restrict $interface
-        ros_management_prompt $interface 15
+        __ros_management_add ros_restrict $interface
+        __ros_management_prompt $interface 15
     fi
 }
 
@@ -468,8 +459,6 @@ ros2restart()
 ros2 daemon stop
 ros2 daemon start
 }
-
-
 
 # special functions for network setup on Centrale Nantes's robots
 # show several usages of ros_restrict
@@ -482,8 +471,8 @@ ros_master()
 if [[ $# -eq 0 ]]; then
     unset ROS_MASTER_URI
     unset ROS_IP
-    ros_management_prompt __CLEAN
-    ros_management_add ros_master
+    __ros_management_prompt __CLEAN
+    __ros_management_add ros_master
     return
 fi
 
@@ -495,8 +484,8 @@ else
     export ROS_MASTER_URI="http://$ROS_IP:11311"
 fi
 
-ros_management_prompt $1
-ros_management_add ros_master $1 $2
+__ros_management_prompt $1
+__ros_management_add ros_master $1 $2
 }
 
 ros_reset()
@@ -508,8 +497,8 @@ ros_reset()
     # ROS_LOCALHOST_ONLY with cyclonedds URI
     ros_restrict lo --nohistory
 
-    ros_management_prompt __CLEAN
-    ros_management_add ros_reset
+    __ros_management_prompt __CLEAN
+    __ros_management_add ros_reset
 }
 
 ros_baxter()
@@ -525,8 +514,8 @@ ros_baxter()
     ros_restrict lo --nohistory
 
     # prompt and store
-    ros_management_prompt baxter 124
-    ros_management_add ros_baxter
+    __ros_management_prompt baxter 124
+    __ros_management_add ros_baxter
 }
 
 ros_turtle()
@@ -547,8 +536,8 @@ ros_turtle()
     fi
 
     # prompt and store
-    ros_management_prompt turtlebot$1 $((111+$1))
-    ros_management_add ros_turtle $1 $2
+    __ros_management_prompt turtlebot$1 $((111+$1))
+    __ros_management_add ros_turtle $1 $2
 }
 
 # deal with auto init
