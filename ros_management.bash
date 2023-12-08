@@ -351,7 +351,11 @@ ros_restrict()
         local interface=$(for dev in $interface; do [[ ! -e /sys/class/net/"$dev"/wireless && $(grep 1 /sys/class/net/"$dev"/carrier) ]] && echo ${dev##*/}; done)
     fi
     if [[ $1 == "lo" ]]; then
-        export ROS_LOCALHOST_ONLY=1
+        if [[ $ROS_DISTRO < "iron" ]]; then
+            export ROS_LOCALHOST_ONLY=1
+        else
+            export ROS_AUTOMATIC_DISCOVERY_RANGE=LOCALHOST
+        fi
         unset ROS_DOMAIN_ID
         unset FASTRTPS_DEFAULT_PROFILES_FILE
         # https://answers.ros.org/question/365051/using-ros2-offline-ros_localhost_only1/
@@ -444,6 +448,9 @@ ros_restrict()
 
     # we probably do not want to limit to localhost
     unset ROS_LOCALHOST_ONLY
+    if [[ $ROS_DISTRO > "humble" ]]; then
+        export ROS_AUTOMATIC_DISCOVERY_RANGE=SUBNET
+    fi
 
     # only update history and prompt if raw call
     if [[ $# -eq 1 ]]; then
