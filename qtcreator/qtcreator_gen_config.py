@@ -18,104 +18,135 @@ def extract(s,left='(',right=')'):
     return s.partition(left)[2].partition(right)[0].strip()
 
 
+def gen_qtcreator(cmake_dir, build_dir, build_type):
+    home = os.path.expanduser('~') + '/'
+    envID_file = home + '.config/QtProject/QtCreator.ini'
+    confID_file = home + '.config/QtProject/qtcreator/profiles.xml'
+    cmake_user = f'{cmake_dir}/CMakeLists.txt.user'
+
+    class Version:
+        def __init__(self, s):
+            self.s = self.split(s)
+
+        def split(self,s):
+            s = [int(v) for v in s.split('.')]
+            if len(s) != 3:
+                s += [0]*(3-len(s))
+            return s
+
+        def rep(self):
+            return '.'.join(str(v) for v in self.s)
+
+        def __eq__(self,s):
+            s = self.split(s)
+            return s[0] == self.s[0] and s[1] == self.s[1]
+
+        def __ge__(self, s):
+            s = self.split(s)
+            for i in range(3):
+                if self.s[i] > s[i]:
+                    return True
+                elif self.s[i] < s[i]:
+                    return False
+            return True
+
+    # get ID's on this computer and Qt Creator version
+    def readConfig():
+        with open(envID_file) as f:
+            envID = f.read().split('Settings\\EnvironmentId=@ByteArray(')[1].split(')')[0]
+        with open(confID_file) as f:
+            data = f.read()
+            confID = data.split('<value type="QString" key="PE.Profile.Id">')[1].split('<')[0]
+            qtcVersion = Version(data.split('<!-- Written by QtCreator ')[1].split(', ')[0])
+        return envID, confID, qtcVersion
+
+    qt_proc = None
+
+    while True:
+
+        if qt_proc is None and (not os.path.exists(envID_file) or not os.path.exists(confID_file)):
+            print('Will run QtCreator once to generate local configuration')
+            sleep(3)
+            qt_proc = Popen(['qtcreator','&'], shell=False)
+        try:
+            envID, confID, qtcVersion = readConfig()
+            break
+        except:
+            sleep(1)
+
+    if qt_proc is not None:
+        try:
+            qt_proc.kill()
+            qt_proc.communicate()
+        except:
+            pass
+
+    # load configuration template
+    gen_config_path = os.path.dirname(os.path.abspath(__file__))
+
+    template_name = 'CMakeLists.txt.user.template.pre4.8'
+    if qtcVersion == '4.8':
+        template_name = 'CMakeLists.txt.user.template.4.8'
+    elif qtcVersion == '4.9':
+        template_name = 'CMakeLists.txt.user.template.4.9'
+    elif qtcVersion >= '4.10':
+        template_name = 'CMakeLists.txt.user.template'
+
+    with open(gen_config_path + '/' + template_name) as f:
+        config = f.read()
+
+    # header = version / time / envID
+    ct = localtime()
+    ct_str = []
+    for key in ('year', 'mon', 'mday','hour','min','sec'):
+        ct_str.append(str(getattr(ct, 'tm_'+key)).zfill(2))
+    time_str = '{}-{}-{}T{}:{}:{}'.format(*ct_str)
+
+    replace_dict = {}
+    replace_dict['<gen_version/>'] = qtcVersion.rep()
+    replace_dict['<gen_time/>'] = '{}-{}-{}T{}:{}:{}'.format(*ct_str)
+    replace_dict['<gen_envID/>'] = envID
+    replace_dict['<gen_cmake_dir/>'] = cmake_dir
+
+    replace_dict['<gen_build_dir/>'] = build_dir
+    replace_dict['<gen_install_dir/>'] = install_dir
+    replace_dict['<gen_conf/>'] = confID
+    replace_dict['<gen_cmake_build_type/>'] = build_type
+
+    config = dict_replace(config, replace_dict)
+
+    config = '\n'.join(line for line in config.splitlines() if line.strip() != '' and '!--' not in line)
+
+    print('Configuring Qt Creator @ CMakeLists.txt.user')
+    with open(cmake_user, 'w') as f:
+        f.write(config)
+
+
+def gen_vscode(cmake_dir, build_dir, build_type = None):
+    code_dir = cmake_dir + '/.vscode'
+    code_settings = code_dir + '/settings.json'
+    if not os.path.exists(code_dir):
+        os.mkdir(code_dir)
+    print('Configuring VS Code @ .vscode/settings.json')
+    with open(code_settings, 'w') as f:
+        f.write(f'{{\n  "cmake.buildDirectory": "{build_dir}",\n   "editor.mouseWheelZoom": true}}\n')
+
+
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-parser.description = 'A script to generate Qt Creator configuration file for CMake projects.'
+parser.description = 'A script to generate IDE (Qt Creator / VS Code) configuration file for CMake projects.'
 parser.add_argument('-c', metavar='cmakelist_dir', help='Folder of CMakeLists.txt file',default='.')
 parser.add_argument('-b', metavar='build_dir', help='Relative build folder',default='./build')
 parser.add_argument('--clean', action='store_true', default=False)
-parser.add_argument('--yes', action='store_true', default=False)
 args = parser.parse_args()
 
-if args.clean:
-    args.yes = True
-
-home = os.path.expanduser('~') + '/'
-envID_file = home + '.config/QtProject/QtCreator.ini'
-confID_file = home + '.config/QtProject/qtcreator/profiles.xml'
 cmake_dir = os.path.abspath(args.c)
 cmake_file = cmake_dir + '/CMakeLists.txt'
-cmake_user = cmake_file + '.user'
 build_dir = os.path.abspath(cmake_dir + '/' + args.b)
-
-
-class Version:
-    def __init__(self, s):
-        self.s = self.split(s)
-
-    def split(self,s):
-        s = [int(v) for v in s.split('.')]
-        if len(s) != 3:
-            s += [0]*(3-len(s))
-        return s
-
-    def rep(self):
-        return '.'.join(str(v) for v in self.s)
-
-    def __eq__(self,s):
-        s = self.split(s)
-        return s[0] == self.s[0] and s[1] == self.s[1]
-
-    def __ge__(self, s):
-        s = self.split(s)
-        for i in range(3):
-            if self.s[i] > s[i]:
-                return True
-            elif self.s[i] < s[i]:
-                return False
-        return True
-
-
-# get ID's on this computer and Qt Creator version
-def readConfig():
-    with open(envID_file) as f:
-        envID = f.read().split('Settings\\EnvironmentId=@ByteArray(')[1].split(')')[0]
-    with open(confID_file) as f:
-        data = f.read()
-        confID = data.split('<value type="QString" key="PE.Profile.Id">')[1].split('<')[0]
-        qtcVersion = Version(data.split('<!-- Written by QtCreator ')[1].split(', ')[0])
-    return envID, confID, qtcVersion
-
-
-qt_proc = None
-
-while True:
-
-    if qt_proc is None and (not os.path.exists(envID_file) or not os.path.exists(confID_file)):
-        print('Will run QtCreator once to generate local configuration')
-        sleep(3)
-        qt_proc = Popen(['qtcreator','&'], shell=False)
-
-    try:
-        envID, confID, qtcVersion = readConfig()
-        break
-    except:
-        sleep(1)
-
-if qt_proc is not None:
-    try:
-        qt_proc.kill()
-        qt_proc.communicate()
-    except:
-        pass
 
 if not os.path.exists(cmake_file):
     print('Could not find CMakeLists.txt, exiting')
     print('Given location: ' + cmake_file)
     sys.exit(0)
-
-if os.path.exists(cmake_user) and not args.yes:
-    ans = 'not good'
-    while ans not in ('y','n',''):
-        ans = input('CMakeLists.txt.user already exists, should I delete it [Y/n]: ').lower()
-    if ans == 'n':
-        print('CMakeLists.txt.user already exists, exiting')
-        sys.exit(0)
-
-# remove previous configs
-for li in os.listdir(cmake_dir):
-    if li.startswith('CMakeLists.txt.user'):
-        print('Removing ' + cmake_dir + '/' + li)
-        os.remove(cmake_dir + '/' + li)
 
 with open(cmake_file) as f:
     cmake = f.read().splitlines()
@@ -177,7 +208,7 @@ class RosBuild:
         return build_dir, bin_dir, install_dir
 
 
-print('Loading ' + os.path.abspath(cmake_file) + '\n')
+#print('Loading ' + os.path.abspath(cmake_file) + '\n')
 
 for line in cmake:
     
@@ -190,9 +221,7 @@ for line in cmake:
         package = extract(line)
     elif 'CMAKE_BUILD_TYPE' in line and 'set' in line:
         if line.index('set') < line.index('CMAKE_BUILD_TYPE'):
-            print(extract(line))
             build_type = extract(line).split()[1].strip('"').strip("'")
-            print(f'  Found build type "{build_type}" in CMakeLists.txt')
     elif not RosBuild.version:
         if 'catkin_package' in line:
             RosBuild.version = 1
@@ -221,39 +250,9 @@ elif args.clean:
     os.mkdir(build_dir)
 
 print('  build directory: ' + os.path.abspath(build_dir))
-print('  bin directory:   ' + os.path.abspath(bin_dir))
+if bin_dir != build_dir:
+    print('  bin directory:   ' + os.path.abspath(bin_dir))
 
-
-# load configuration template
-gen_config_path = os.path.dirname(os.path.abspath(__file__))
-
-template_name = 'CMakeLists.txt.user.template.pre4.8'
-if qtcVersion == '4.8':
-    template_name = 'CMakeLists.txt.user.template.4.8'
-elif qtcVersion == '4.9':
-    template_name = 'CMakeLists.txt.user.template.4.9'
-elif qtcVersion >= '4.10':
-    template_name = 'CMakeLists.txt.user.template'
-
-with open(gen_config_path + '/' + template_name) as f:
-    config = f.read()
-
-# header = version / time / envID
-ct = localtime()
-ct_str = []
-for key in ('year', 'mon', 'mday','hour','min','sec'):
-    ct_str.append(str(getattr(ct, 'tm_'+key)).zfill(2))
-time_str = '{}-{}-{}T{}:{}:{}'.format(*ct_str)
-
-replace_dict = {}
-replace_dict['<gen_version/>'] = qtcVersion.rep()
-replace_dict['<gen_time/>'] = '{}-{}-{}T{}:{}:{}'.format(*ct_str)
-replace_dict['<gen_envID/>'] = envID
-replace_dict['<gen_cmake_dir/>'] = cmake_dir
-
-replace_dict['<gen_build_dir/>'] = build_dir
-replace_dict['<gen_install_dir/>'] = install_dir
-replace_dict['<gen_conf/>'] = confID
 
 if build_type is None:
 
@@ -265,30 +264,21 @@ if build_type is None:
         for line in cache:
             if line.startswith('CMAKE_BUILD_TYPE'):
                 build_type = line.split('=')[-1]
-                print(f'  Found build type "{build_type}" in CMakeCache.txt')
+                if build_type:
+                    print(f'  build type "{build_type}" from CMakeCache.txt')
                 break
 
     if build_type is None:
         build_type = 'Debug'
+else:
+    print(f'  build type "{build_type}" from CMakeLists.txt')
+print()
 
-replace_dict['<gen_cmake_build_type/>'] = build_type
 
-config = dict_replace(config, replace_dict)
-
-config = '\n'.join(line for line in config.splitlines() if line.strip() != '' and '!--' not in line)
-
-with open(cmake_user, 'w') as f:
-    f.write(config)
-
-# also create VS code helpers
-try:
-    code = check_output(['which','code'])
-    code_dir = cmake_dir + '/.vscode'
-    code_settings = code_dir + '/settings.json'
-    if not os.path.exists(code_dir):
-        os.mkdir(code_dir)
-    with open(code_settings, 'w') as f:
-        f.write(f'{{\n  "cmake.buildDirectory": "{build_dir}",\n   "editor.mouseWheelZoom": true}}\n')
-
-except CalledProcessError:
-    code = None
+for ide, generator in (('qtcreator', gen_qtcreator),
+                       ('code', gen_vscode)):
+    try:
+        available = check_output(['which',ide])
+        generator(cmake_dir, build_dir, build_type)
+    except CalledProcessError:
+        continue
