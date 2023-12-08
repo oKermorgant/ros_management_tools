@@ -97,11 +97,11 @@ Any similar function can be defined and used with the custom prompt and stored s
 
 In ROS 1, `catkin build` could be run from anywhere inside the workspace while in ROS 2, `colcon build` has to be called from the root (where directories `src`, `build` and `install` lie). In practice, calling `colcon build` from e.g. your package directory will actually use this folder as the workspace.
 
-The command `colbuild` offers the same usage as `catkin`: it calls `colcon build --symlink-install` and can be run from anywhere inside the workspace. It provides two options:
+The command `colbuild` offers the same usage as `catkin`: it calls `colcon build --symlink-install` and can be run from anywhere inside the workspace. It provides additional options:
 - `-p`: similar to `--packages-select`
 - `-pu`: similar to `--packages-up-to`
 - `-t`, `--this`: similar to `--packages-select` the package that includes the current dir
 
 ## QtCreator configuration
 
-The `qtcreator` folder includes a script to generate ad-hoc configuration files (raw CMake / ROS 1 / ROS 2) for Qt Creator.
+The `qtcreator` folder includes a script to generate ad-hoc configuration files (raw CMake / ROS 1 / ROS 2) for Qt Creator and VS Code. With this, IDE's will just treat ROS packages as classical CMake, assuming `catkin` or `colcon` was called before to create and symlink the relevant files.
