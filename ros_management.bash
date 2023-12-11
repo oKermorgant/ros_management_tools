@@ -269,7 +269,7 @@ ros2ws()
     fi
 }
 
-# some shortcuts
+# colcon build shortcut
 colbuild()
 {
     # Clean ROS 1 paths
@@ -326,6 +326,40 @@ colbuild()
         # source anyway
         __ros_management_register_workspace $ws
     done
+}
+
+# colcon clean
+colclean()
+{
+    local pkgs="$*"
+    local ws
+    local cmd=""
+    local PWD="$(pwd)/"
+    for ws in $ros2_workspaces; do
+        # if in this workspace, delete corresponding folders
+        if [[ "$PWD" = "$ws/"* ]]; then
+            local cmd="rm -rf"
+            for pkg in $pkgs; do
+                local cmd="$cmd build/$pkg install/$pkg"
+            done
+            break
+        fi
+    done
+  if [[ -z $cmd ]]; then
+    echo "Not in a ROS 2 workspace"
+    return
+  fi
+
+  echo "[Workspace @ $ws]: will run $cmd"
+  read -p "Proceed with package clean [Y/n] " -n 1 -r
+  echo    # (optional) move to a new line
+  # check if reply is null or equal to Y or y
+  if [[ -z $REPLY ]] || [[ $REPLY =~ ^[Yy]$ ]]; then
+    (cd $ws;eval $cmd)
+    __ros_management_register_workspace $ws
+  else
+    echo "  operation cancelled"
+  fi
 }
 
 # restrict FastRTPS / Cyclone DDS to this network interface

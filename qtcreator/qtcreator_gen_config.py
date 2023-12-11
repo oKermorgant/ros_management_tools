@@ -129,7 +129,7 @@ def gen_vscode(cmake_dir, build_dir, build_type = None):
         os.mkdir(code_dir)
     print('Configuring VS Code @ .vscode/settings.json')
     with open(code_settings, 'w') as f:
-        f.write(f'{{\n  "cmake.buildDirectory": "{build_dir}",\n   "editor.mouseWheelZoom": true}}\n')
+        f.write(f'{{\n  "cmake.buildDirectory": "{build_dir}",\n   "editor.mouseWheelZoom": true\n}}\n')
 
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)

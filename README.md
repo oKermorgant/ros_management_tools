@@ -1,5 +1,17 @@
 Some scripts to easily use ROS 1 and ROS 2
 
+## Installing
+
+Run `install.sh -h` to have an overview of the installation options :
+
+- `-d/--dest`: where to copy the folder (default current location)
+- `-o/--opt`: options to source the tool (default `-ros2 -p -k -lo`, see below for the details)
+- `-s/--skel`: if the /etc/skel/.bashrc shold be updated as well (default False)
+- `-y/--yes`: do not ask confirmation
+
+If `skel` is used or if the destination is outside the current user home, it will require sudo privilege.
+
+
 ## ROS 1 / ROS 2 management
 
 The script `ros_management.bash` is a set of tools to handle ROS 1 / ROS 2 workspaces. It can be sourced in a `.bashrc` after defining the two variables `ros1_workspaces` and `ros2_workspaces`, that list to the overlay-ordered workspaces:
