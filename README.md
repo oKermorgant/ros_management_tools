@@ -6,7 +6,7 @@ Run `install.bash -h` to have an overview of the installation options :
 
 - `-d/--dest`: where to copy the folder (default current location)
 - `-o/--opt`: options to source the tool (default `-ros2 -p -k -lo`, see below for the details)
-- `-s/--skel`: if the /etc/skel/.bashrc shold be updated as well (default False)
+- `-s/--skel`: if the /etc/skel/.bashrc should be updated as well (default False)
 - `-y/--yes`: do not ask confirmation
 
 If `skel` is used or if the destination is outside the current user home, it will require sudo privilege.
