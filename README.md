@@ -2,7 +2,7 @@ Some scripts to easily use ROS 1 and ROS 2
 
 ## Installing
 
-Run `install.sh -h` to have an overview of the installation options :
+Run `install.bash -h` to have an overview of the installation options :
 
 - `-d/--dest`: where to copy the folder (default current location)
 - `-o/--opt`: options to source the tool (default `-ros2 -p -k -lo`, see below for the details)
