@@ -172,32 +172,16 @@ done
 # Equivalent of roscd but jumps to the source, assuming a symlink install
 ros2cd()
 {
-    local ws=$ros2_workspaces
     local dest=$(ros2 pkg prefix $1 --share)
     if [[ $dest == *"not found" ]]; then
         echo "Could not find package $1"
         return
     fi
 
-    if [[ $dest == *"/install/"* ]]; then
-    for ws in $ros2_workspaces
-        do
-            # identify if we are here
-            if [[ "$dest" != "$ws"* ]]; then
-                continue
-            fi
-            # Make it to the source directory if possible
-            if [[ ! -d "${ws}/src" ]]; then
-                continue
-            fi
-
-            # Find the source with sym link if possible
-            local abs_pkg=$(readlink ${dest}/package.xml)
-            if [[ $abs_pkg != "" ]]; then
-                dest=$(dirname $abs_pkg)
-                break
-            fi
-        done
+    # Try to make it to the source if symlink
+    local abs_pkg=$(readlink ${dest}/package.xml)
+    if [[ $abs_pkg != "" ]]; then
+        local dest=$(dirname $abs_pkg)
     fi
     cd $dest
 }
