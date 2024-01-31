@@ -114,6 +114,8 @@ The command `colbuild` offers the same usage as `catkin`: it calls `colcon build
 - `-pu`: similar to `--packages-up-to`
 - `-t`, `--this`: similar to `--packages-select` the package that includes the current dir
 
-## QtCreator configuration
+## IDE configuration
 
-The `qtcreator` folder includes a script to generate ad-hoc configuration files (raw CMake / ROS 1 / ROS 2) for Qt Creator and VS Code. With this, IDE's will just treat ROS packages as classical CMake, assuming `catkin` or `colcon` was called before to create and symlink the relevant files.
+The `ide` folder includes a script to generate ad-hoc configuration files (raw CMake / ROS 1 / ROS 2) for Qt Creator and VS Code. With this, IDE's will just treat ROS packages as classical CMake, assuming `catkin` or `colcon` was called before to create and symlink the relevant files.
+
+Symbolic links are present for retro-compatibility reasons as this tool was only for Qt Creator initially.
