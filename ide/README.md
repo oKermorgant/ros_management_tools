@@ -7,12 +7,10 @@ A script to generate QtCreator and VS Code configuration file for CMake, ROS 1 a
 
 Just run the script from the folder where the `CMakeLists.txt` file is. It will identify whether it is a raw CMake, ROS 1 or ROS 2 package and pick the suitable build directory.
 
-If the configuration file already exists, it will ask for confirmation.
-
 ## Options
 
 - `-c <path>` : to indicate the path to `CMakeLists.txt` if it is not the current folder (default `.`)
-- `-b <path>` : build folder (relative to CMake file) to use, for raw CMake projects (default `./build`)
+- `-b <path>` : build folder (relative to CMake file) to use (default `./build` for raw CMake projects or standard package build folder for ROS packages)
 - `--clean` : deletes the build folder before creating it again (default False)
 
 ## Generated files
