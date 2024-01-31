@@ -1,5 +1,6 @@
-# ide_config
-A Python script to generate QtCreator and VS Code configuration file for CMake, ROS 1 and ROS 2 projects
+# IDE Configuration for CMake packages (ROS 1 / ROS 2 / non-ROS)
+
+A script to generate QtCreator and VS Code configuration file for CMake, ROS 1 and ROS 2 projects
 
 
 ## Usage
