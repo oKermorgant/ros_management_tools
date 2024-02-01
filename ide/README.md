@@ -17,3 +17,7 @@ Just run the script from the folder where the `CMakeLists.txt` file is. It will 
 
 - for Qt Creator: `CMakeLists.txt.user`
 - for VS Code: `.vscode/settings.json`
+
+### Why the symbolic links
+
+Symbolic links named `qtcreator` are present for retro-compatibility reasons as this tool was only for Qt Creator initially.
