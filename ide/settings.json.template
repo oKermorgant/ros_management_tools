@@ -1,0 +1,9 @@
+{
+  "cmake.buildDirectory": "<gen_build_dir>",
+  "editor.mouseWheelZoom": true,
+  "cmake.configureArgs": ["CMAKE_EXPORT_COMPILE_COMMANDS=1"],
+  "clangd.arguments": [ "-pretty",
+                         "--background-index",
+                         "--compile-commands-dir=<gen_build_dir>/"],
+  "clangd.fallbackFlags": ["-std=c++17", "-xc++"],
+}

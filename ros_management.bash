@@ -315,32 +315,55 @@ colbuild()
 # colcon clean
 colclean()
 {
-    local pkgs="$*"
-    local ws
-    local cmd=""
     local PWD="$(pwd)/"
-    for ws in $ros2_workspaces; do
-        # if in this workspace, delete corresponding folders
-        if [[ "$PWD" = "$ws/"* ]]; then
-            local cmd="rm -rf"
-            for pkg in $pkgs; do
-                local cmd="$cmd build/$pkg install/$pkg"
-            done
-            break
-        fi
-    done
+    # no args = clean this package
+    if [[ $# -eq 0 ]]; then        
+        for ws in $ros2_workspaces; do
+            if [[ "$PWD" = "$ws/"* ]]; then
+                local this_dir=$PWD
+                while [[ ! -e "$this_dir/package.xml" ]]
+                do
+                    if [[ "$ws" = "$this_dir/"* ]]; then
+                        # we went up to the workspace root: could not identify package
+                        break
+                    fi
+                    this_dir=$(dirname $this_dir)
+                done
+                if [[ -e "$this_dir/package.xml" ]]; then                    
+                    local pkg=$(grep -oP '(?<=<name>).*?(?=</name>)' $this_dir/package.xml)
+                    local cmd="rm -rf build/$pkg install/$pkg log/$pkg"
+                    local ws_root=$ws
+                    break
+                fi
+            fi
+        done
+    else
+        local pkgs="$*"
+        local ws_root=""
+        for ws_root in $ros2_workspaces; do
+            # if in this workspace, delete corresponding folders
+            if [[ "$PWD" = "$ws_root/"* ]]; then
+                local cmd="rm -rf"
+                for pkg in $pkgs; do
+                    local cmd="$cmd build/$pkg install/$pkg log/$pkg"
+                done
+                break
+            fi
+        done
+    fi
+    
   if [[ -z $cmd ]]; then
-    echo "Not in a ROS 2 workspace"
+    echo "Not in a ROS 2 workspace or package"
     return
   fi
 
-  echo "[Workspace @ $ws]: will run $cmd"
+  echo "[Workspace @ $ws_root]: will run $cmd"
   read -p "Proceed with package clean [Y/n] " -n 1 -r
   echo    # (optional) move to a new line
   # check if reply is null or equal to Y or y
   if [[ -z $REPLY ]] || [[ $REPLY =~ ^[Yy]$ ]]; then
-    (cd $ws;eval $cmd)
-    __ros_management_register_workspace $ws
+    (cd $ws_root;eval $cmd)
+    __ros_management_register_workspace $ws_root
   else
     echo "  operation cancelled"
   fi
@@ -584,4 +607,5 @@ fi
 
 if [[ $ROS_VERSION -eq 2 ]]; then
     complete -W "$(ros2 pkg list)" ros2cd
+    complete -W "$(ros2 pkg list)" colclean
 fi

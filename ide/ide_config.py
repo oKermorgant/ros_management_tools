@@ -124,12 +124,17 @@ def gen_qtcreator(cmake_dir, build_dir, build_type):
 
 def gen_vscode(cmake_dir, build_dir, build_type = None):
     code_dir = cmake_dir + '/.vscode'
-    code_settings = code_dir + '/settings.json'
     if not os.path.exists(code_dir):
         os.mkdir(code_dir)
-    print('Configuring VS Code @ .vscode/settings.json')
-    with open(code_settings, 'w') as f:
-        f.write(f'{{\n  "cmake.buildDirectory": "{build_dir}",\n   "editor.mouseWheelZoom": true\n}}\n')
+    print('Configuring VS Code @ .vscode/settings.json (C/C++ - CMake Tools - clangd extensions)')
+
+    with open(os.path.dirname(os.path.abspath(__file__)) + '/settings.json.template') as f:
+        settings = f.read()
+
+    with open(code_dir + '/settings.json', 'w') as f:
+        f.write(settings.replace('<gen_build_dir>', build_dir))
+    with open(code_dir + '/compile_flags.txt', 'w') as f:
+        f.write('-xc++\n-std=c++17')
 
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
