@@ -226,7 +226,10 @@ for line in cmake:
         package = extract(line)
     elif 'CMAKE_BUILD_TYPE' in line and 'set' in line:
         if line.index('set') < line.index('CMAKE_BUILD_TYPE'):
-            build_type = extract(line).split()[1].strip('"').strip("'")
+            try:
+                build_type = extract(line).split()[1].strip('"').strip("'")
+            except IndexError:
+                build_type = None
     elif not RosBuild.version:
         if 'catkin_package' in line:
             RosBuild.version = 1

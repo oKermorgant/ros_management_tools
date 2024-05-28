@@ -376,7 +376,7 @@ ros_restrict()
         echo "ros_restrict: give a network interface or ETH / WIFI / lo (localhost)"
         return
     fi
-    
+
     # slight change in Cyclone syntax since Humble / 22.04
     if [[ $(lsb_release -sr) < 22.00 ]]; then
         local legacy_cyclonedds=1
@@ -484,7 +484,7 @@ ros_restrict()
     if [[ -n $legacy_cyclonedds ]]; then
         export CYCLONEDDS_URI="<General><NetworkInterfaceAddress>$interface"
     else
-        export CYCLONEDDS_URI='<General><Interfaces><NetworkInterface name="$interface"/>'
+        export CYCLONEDDS_URI="<General><Interfaces><NetworkInterface name=\"${interface}\"/>"
     fi                
 
     # we probably do not want to limit to localhost
