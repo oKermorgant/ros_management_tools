@@ -501,12 +501,50 @@ ros_restrict()
     fi
 }
 
+# define Fast-DDS super client when debugging
+ros_super_client()
+{
+    if [[ -z $ROS_DISCOVERY_SERVER ]]; then
+        return
+    fi
+
+    local server=(${ROS_DISCOVERY_SERVER//:/ })
+    echo "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>
+ <dds>
+     <profiles xmlns=\"http://www.eprosima.com/XMLSchemas/fastRTPS_Profiles\">
+         <participant profile_name=\"super_client_profile\" is_default_profile=\"true\">
+             <rtps>
+                 <builtin>
+                     <discovery_config>
+                         <discoveryProtocol>SUPER_CLIENT</discoveryProtocol>
+                         <discoveryServersList>
+                             <RemoteServer prefix=\"44.53.00.5f.45.50.52.4f.53.49.4d.41\">
+                                 <metatrafficUnicastLocatorList>
+                                     <locator>
+                                         <udpv4>
+                                             <address>${server[0]}</address>
+                                             <port>${server[1]}</port>
+                                         </udpv4>
+                                     </locator>
+                                 </metatrafficUnicastLocatorList>
+                             </RemoteServer>
+                         </discoveryServersList>
+                     </discovery_config>
+                 </builtin>
+             </rtps>
+         </participant>
+     </profiles>
+ </dds>" > /tmp/fastrtps_interface_restriction_$USER.xml
+    # restart ROS 2 daemon with this config
+    FASTRTPS_DEFAULT_PROFILES_FILE=/tmp/fastrtps_interface_restriction_$USER.xml ros2restart > /dev/null 2>&1
+}
+
 
 # restart daemon
 ros2restart()
 {
-ros2 daemon stop
-ros2 daemon start
+    ros2 daemon stop
+    ros2 daemon start
 }
 
 # special functions for network setup on Centrale Nantes's robots
@@ -517,24 +555,24 @@ ros2 daemon start
 ros_master()
 {
 
-if [[ $# -eq 0 ]]; then
-    unset ROS_MASTER_URI
-    unset ROS_IP
-    __ros_management_prompt __CLEAN
-    __ros_management_add ros_master
-    return
-fi
+    if [[ $# -eq 0 ]]; then
+        unset ROS_MASTER_URI
+        unset ROS_IP
+        __ros_management_prompt __CLEAN
+        __ros_management_add ros_master
+        return
+    fi
 
-export ROS_IP=$(ip addr show $1 | grep "inet\b" | awk '{print $2}' | cut -d/ -f1)
+    export ROS_IP=$(ip addr show $1 | grep "inet\b" | awk '{print $2}' | cut -d/ -f1)
 
-if [[ $# -eq 2 ]]; then
-    export ROS_MASTER_URI="http://$2:11311"
-else
-    export ROS_MASTER_URI="http://$ROS_IP:11311"
-fi
+    if [[ $# -eq 2 ]]; then
+        export ROS_MASTER_URI="http://$2:11311"
+    else
+        export ROS_MASTER_URI="http://$ROS_IP:11311"
+    fi
 
-__ros_management_prompt $1
-__ros_management_add ros_master $1 $2
+    __ros_management_prompt $1
+    __ros_management_add ros_master $1 $2
 }
 
 ros_reset()
@@ -582,10 +620,17 @@ ros_turtle()
 
     # on Wifi we better use discovery server, assuming it is on the robot
     # let it as an option - it could replace ROS_DOMAIN_ID
-    if [[ $# -eq 2 ]]; then
+    if [[ $# -ge 2 ]]; then
        local tbot_domain=$1
-       local tbot=${tbot_domain:1:2}
-       export ROS_DISCOVERY_SERVER="waffle$tbot.local:11881;turtle$tbot.local:11881"
+       local tbot_type=${tbot_domain:0:1}
+       local tbot_n=${tbot_domain:1:2}
+
+       if [[ $tbot_type == 2 ]]; then
+        local tbot="turtle" # our Turtlebot2's are called turtle#
+       else
+        local tbot="waffle" # our Turtlebot3's are called waffle#
+       fi
+       export ROS_DISCOVERY_SERVER="$tbot$tbot_n.local:11881"
     fi
 
     # prompt and store
