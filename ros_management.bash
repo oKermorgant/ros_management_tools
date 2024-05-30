@@ -397,6 +397,7 @@ ros_restrict()
         else
             export ROS_AUTOMATIC_DISCOVERY_RANGE=LOCALHOST
         fi
+        unset ROS_DISCOVERY_SERVER
         unset ROS_DOMAIN_ID
         unset FASTRTPS_DEFAULT_PROFILES_FILE
         # https://answers.ros.org/question/365051/using-ros2-offline-ros_localhost_only1/
@@ -577,10 +578,14 @@ ros_turtle()
     export ROS_DOMAIN_ID=$1
 
     # force ROS 2 on wifi, do not save it in history
-    if [[ $# -eq 1 ]]; then
-        ros_restrict WIFI --nohistory
-    else
-        ros_restrict ETH --nohistory
+    ros_restrict WIFI --nohistory
+
+    # on Wifi we better use discovery server, assuming it is on the robot
+    # let it as an option - it could replace ROS_DOMAIN_ID
+    if [[ $# -eq 2 ]]; then
+       local tbot_domain=$1
+       local tbot=${tbot_domain:1:2}
+       export ROS_DISCOVERY_SERVER="waffle$tbot.local:11881;turtle$tbot.local:11881"
     fi
 
     # prompt and store
