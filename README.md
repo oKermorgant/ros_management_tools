@@ -107,7 +107,7 @@ Running `ros_reset` removes any previous network setting:
 A few functions, that are designed for use at Centrale Nantes, also exist:
 
 - `ros_baxter`: configure ROS 1 to connect on Baxter's ROSMASTER through ethernet, restrict ROS 2 to localhost
-- `ros_turtle #turtle`: configure ROS 2 to use the same ROS_DOMAIN_ID as our Turtlebots and restrict to Wifi (default) or ethernet if a second argument is given
+- `ros_turtle #turtle`: configure ROS 2 to use the same ROS_DOMAIN_ID as our Turtlebots and restrict to Wifi. Uses a [discovery server](https://docs.ros.org/en/humble/Tutorials/Advanced/Discovery-Server/Discovery-Server.html) if another argument is given.
 
 Any similar function can be defined and used with the custom prompt and stored settings. The function should start with `ros_` and are assumed to be exclusive (only the latest called `ros_` function is stored for future terminals).
 
