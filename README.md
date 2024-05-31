@@ -42,7 +42,7 @@ source ~/main_ros2_overlay/install/setup.bash
 # except it also cleans ROS 1 paths (from ros1_workspaces)
 ```
 
-## Arguments when soucring
+## Sourcing arguments
 
 #### Modify the prompt with `-p`
 
