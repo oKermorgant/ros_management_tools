@@ -1,4 +1,10 @@
-The script `ros_management.bash` is a set of tools to handle ROS 1 / ROS 2 workspaces and simplify the command line. It can be sourced in a `.bashrc` after defining the two variables `ros1_workspaces` and `ros2_workspaces`, that list to the overlay-ordered workspaces:
+# Helper functions to configure ROS 2 in terminals
+
+The script `ros_management.bash` is a set of tools to simplify the command line when tweaking ROS 2 (compiling, networking, discovery, etc.).
+
+It also avoids mixing ROS 1 and ROS 2 workspaces, for people using both.
+
+Compared to classical tutorials, this tool takes care of sourcing the ROS workspaces, as long as they are listed (in overlay order) in the two variables `ros1_workspaces` and `ros2_workspaces`. A classical `.bashrc` is similar to:
 
 ```bash
 # your future .bashrc
@@ -7,9 +13,7 @@ ros2_workspaces="/opt/ros/foxy ~/some_ros2_workspace ~/main_ros2_overlay"
 source /path/to/ros_management.bash
 ```
 
-The main functions  are `ros1ws` and `ros2ws`, to activate either ROS 1 or ROS 2 workspaces in a terminal.
-
-Other functions are defined to give easy access to network or colcon parameterization. Note that `ros1_workspaces` does not have to be defined at all if you only use ROS 2. Most of the tools in this script are actually for ROS 2.
+Note that `ros1_workspaces` does not have to be defined at all if you only use ROS 2. Most of the tools in this script are actually for ROS 2.
 
 ## Installing
 
@@ -24,28 +28,37 @@ Run `install.bash -h` to have an overview of the installation options :
 
 If `skel` is used or if the destination is outside the current user home, it will require sudo privilege.
 
+## Switch between ROS 1 or ROS 2
 
-## Arguments
+After sourcing the script, calling `ros1ws` or `ros2ws` will source the corresponding workspaces in this terminal:
 
-#### Prefer ROS 1 or ROS 2 with `-ros1` or `-ros2`: 
+```bash
+ros2_workspaces="/opt/ros/foxy ~/some_ros2_workspace ~/main_ros2_overlay"
 
-If sourced with `-ros1` or `-ros2`, will directly activate the given version and consider it the prefered one.
+# sourcing ros_management.bash and calling ros2ws is equivalent to:
+source /opt/ros/foxy/setup.bash
+source ~/some_ros2_workspace/install/setup.bash
+source ~/main_ros2_overlay/install/setup.bash
+# except it also cleans ROS 1 paths (from ros1_workspaces)
+```
+
+## Arguments when soucring
 
 #### Modify the prompt with `-p`
 
 If sourced with `-p`, the script will update the bash prompt in order to know:
 
-- whether the non-prefered ROS version is active (if any)
+- whether ROS 1 is active in this terminal (this avoids messing up)
 - whether ROS 2 is restricted to a specific network interface
     
 ```bash
-source /path/to/ros_management.bash -ros1 -p # default to ROS 1, thus [ROS1] is not displayed in the prompt
-ros2ws # ros2 is now active and [ROS2] is displayed
+source /path/to/ros_management.bash -p # default ROS 2 sourcing, prompt is not modified
+ros1ws # ros1 is now active and [ROS1] is displayed
 ```
 
 #### Restrict ROS 2 to localhost with `-lo`
 
-In this case the script will set `ROS_LOCALHOST_ONLY` for ROS 2
+In this case the script will set `ROS_LOCALHOST_ONLY` (or equivalent for Iron+) for ROS 2
 
 #### Store settings with `-k`
 
@@ -53,7 +66,7 @@ If the settings are stored then any new terminal will have the same settings as 
 
 The idea is that when working on a given robot, or a given ROS version, the special setting is only done once even if new terminals are open afterwards (it may happen when using ROS).
 
-Manual calls to `rosXws` or `ros_restrict` will override `-ros1/2` and `-lo` arguments in new terminals.
+Manual calls to `rosXws` or `ros_restrict` will override `-lo` arguments in new terminals.
 
 Settings are stored in `~/.ros_management_auto_init`, delete this file to restore the default behavior
 
@@ -66,20 +79,28 @@ source /path/to/ros_management.bash -ros2 -k -p # also activate prompt
 ros1ws # ros1 is now active and will be active in new terminals, [ROS1] is displayed as well
 ```
 
-## Network-related functions
+## ROS 2 functions
 
-Besides the sourcing of ROS 1 / ROS 2 workspace, the following functions help configuring the network behavior.
+Besides the sourcing of ROS 1 / ROS 2 workspace, the main use of the tool is to help configuring ROS 2 in details.
 
-### ROS 1: use a distant ROSMASTER on a given interface
+## `colcon` shortcuts (colbuild)
 
-The function `ros_master` will configure `ROS_IP` / `ROS_MASTER_URI` to the given network interface:
+In ROS 1, `catkin build` could be run from anywhere inside the workspace while in ROS 2, `colcon build` has to be called from the root (where directories `src`, `build` and `install` lie). In practice, calling `colcon build` from e.g. your package directory will actually use this folder as the workspace.
 
-```bash
-# configures ROS_MASTER_URI=master_hostname.local and ROS_IP=(ip on eth0)
-ros_master eth0 master_hostname.local
-```
+The command `colbuild` offers the following behavior:
 
-### ROS 2: restrict to a network interface
+- calls `colcon build --symlink-install --continue-on-errors`
+- can be run from anywhere inside the workspace
+- before compiling: cleans the environment variables and sources the workspaces up to the current one
+- after compiling: re-sources the workspaces (this is what you would do anyway)
+
+It provides additional keywords:
+
+- `-p`: similar to `--packages-select`
+- `-pu`: similar to `--packages-up-to`
+- `-t`, `--this`: compiles only the package that includes the current directory
+
+### Network: restrict to a network interface
 
 The function `ros_restrict` takes a network interface (or `lo` / `WIFI` / `ETH`) and will only use this interface for ROS 2 (in this terminal).
 It will configure FastRTPS and Cyclone DDS. In practice, a few XML is needed to properly handle these cases:
@@ -94,20 +115,39 @@ ros_restrict WIFI  # only uses WiFi, let the script find the interface name
 ```
 If `ros_management.bash` was sourced with `-k` then this restriction is forwarded to any new terminal.
 
-### Reset network settings
+You can get back to localhost only with `ros_reset`. It will set `ROS_LOCALHOST_ONLY` (or `ROS_AUTOMATIC_DISCOVERY_RANGE` for Iron+) with prefered interface being `lo` for ROS 2
 
-Running `ros_reset` removes any previous network setting:
+### Network: setup super client for FastDDS discovery
 
-- unset `ROS_IP` and `ROS_MASTER_URI` for ROS 1
-- sets `ROS_LOCALHOST_ONLY` (or `ROS_AUTOMATIC_DISCOVERY_RANGE` for Iron+) with prefered interface being `lo` for ROS 2
+It is usually a good idea to use a [discovery server](https://docs.ros.org/en/humble/Tutorials/Advanced/Discovery-Server/Discovery-Server.html) when using ROS 2 over Wifi. The main issue is that by default, command-line tools are not able to introspect the ROS graph as nodes and topics are not automatically discovered.
+
+Calling `ros_super_client` enables a [super client](https://docs.ros.org/en/humble/Tutorials/Advanced/Discovery-Server/Discovery-Server.html#daemon-s-related-tools) session based on the value of `ROS_DISCOVERY_SERVER`, when graph introspection is required.
+
+### Network: restart daemon
+
+Calling `ros2restart` will restart the ROS 2 daemon in case discovery is not functional. It will also reset any `super client`.
 
 
-### Examples
+## ROS 1 functions
 
-A few functions, that are designed for use at Centrale Nantes, also exist:
+### Network: use a distant ROSMASTER on a given interface
+
+The function `ros_master` will configure `ROS_IP` / `ROS_MASTER_URI` to the given network interface:
+
+```bash
+# configures ROS_MASTER_URI=master_hostname.local and ROS_IP=(ip on eth0)
+ros_master eth0 master_hostname.local
+```
+
+Call `ros_reset` to unset `ROS_IP` and `ROS_MASTER_URI`.
+
+
+## Examples
+
+A few functions, that are designed for use at Centrale Nantes, show how to combine the previous tools:
 
 - `ros_baxter`: configure ROS 1 to connect on Baxter's ROSMASTER through ethernet, restrict ROS 2 to localhost
-- `ros_turtle #turtle`: configure ROS 2 to use the same ROS_DOMAIN_ID as our Turtlebots and restrict to Wifi. Uses a [discovery server](https://docs.ros.org/en/humble/Tutorials/Advanced/Discovery-Server/Discovery-Server.html) if another argument is given.
+- `ros_turtle #turtle`: configure ROS 2 to use the same ROS_DOMAIN_ID as our Turtlebots and restrict to Wifi. If another argument is given, relies on a discovery server on the Turtlebot.
 
 Any similar function can be defined and used with the custom prompt and stored settings. The function should start with `ros_` and are assumed to be exclusive (only the latest called `ros_` function is stored for future terminals).
 
@@ -125,23 +165,6 @@ ros2_workspaces="/opt/ros/humble /some/path/to/this_new_project" # <- the one th
 ```
 At this point you should be rigourous enough to re-source all terminals to make sure they use the same workspaces.
 
-
-## ROS 2: `colcon` shortcuts (colbuild)
-
-In ROS 1, `catkin build` could be run from anywhere inside the workspace while in ROS 2, `colcon build` has to be called from the root (where directories `src`, `build` and `install` lie). In practice, calling `colcon build` from e.g. your package directory will actually use this folder as the workspace.
-
-The command `colbuild` offers the following behavior:
-
-- calls `colcon build --symlink-install --continue-on-errors`
-- can be run from anywhere inside the workspace
-- before compiling: cleans the environment variables and sources the workspaces up to the current one
-- after compiling: re-sources the workspaces
-
-It provides additional options:
-
-- `-p`: similar to `--packages-select`
-- `-pu`: similar to `--packages-up-to`
-- `-t`, `--this`: similar to `--packages-select` (the package that includes the current dir)
 
 ## IDE configuration
 
