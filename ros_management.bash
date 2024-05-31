@@ -644,10 +644,8 @@ if [[ $ROS_MANAGEMENT_ARGS == *"-k"* ]] && [[ -e ~/.ros_management_auto_init ]];
     source ~/.ros_management_auto_init
 else
 
-    # check imposed ROS version
-    if [[ $ROS_MANAGEMENT_ARGS =~ (.*)(-ros)([12])(.*) ]]; then
-        eval "ros${BASH_REMATCH[3]}ws"
-    fi
+    # no default, source ROS 2
+    ros2ws
     
     # check localhost only
     if [[ $ROS_MANAGEMENT_ARGS == *"-lo"* ]]; then
