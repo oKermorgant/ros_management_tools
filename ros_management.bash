@@ -630,7 +630,7 @@ ros_turtle()
        else
         local tbot="waffle" # our Turtlebot3's are called waffle#
        fi
-       export ROS_DISCOVERY_SERVER="$tbot$tbot_n.local:11881"
+       export ROS_DISCOVERY_SERVER="$tbot$tbot_n.local:11811"
     fi
 
     # prompt and store
