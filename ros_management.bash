@@ -298,6 +298,23 @@ colbuild()
                         cmd="$cmd --packages-select $pkg"
                     fi
                     ;;
+                    ("-tu");&
+                    ("--this-up-to")
+                    # identify this package
+                    local this_dir=$PWD
+                    while [[ ! -e "$this_dir/package.xml" ]]
+                    do
+                        if [[ "$ws" = "$this_dir/"* ]]; then
+                            # we went up to the workspace root: could not identify package
+                            break
+                        fi
+                        this_dir=$(dirname $this_dir)
+                    done
+                    if [[ -e "$this_dir/package.xml" ]]; then
+                        local pkg=$(grep -oP '(?<=<name>).*?(?=</name>)' $this_dir/package.xml)
+                        cmd="$cmd --packages-up-to $pkg"
+                    fi
+                    ;;
                     (*) cmd="$cmd $arg" ;;
                 esac
             done

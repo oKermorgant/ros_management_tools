@@ -22,7 +22,7 @@ The script can simply be sourced from your `.bashrc`. In order to install it in 
 Run `install.bash -h` to have an overview of the installation options :
 
 - `-d/--dest`: where to copy the folder (default current location)
-- `-o/--opt`: options to source the tool (default `-ros2 -p -k -lo`, see below for the details)
+- `-o/--opt`: options to source the tool (default `-p -k -lo`, see below for the details)
 - `-s/--skel`: if the /etc/skel/.bashrc should be updated as well (default False)
 - `-y/--yes`: do not ask confirmation
 
@@ -71,11 +71,11 @@ Manual calls to `rosXws` or `ros_restrict` will override `-lo` arguments in new 
 Settings are stored in `~/.ros_management_auto_init`, delete this file to restore the default behavior
 
 ```bash
-source /path/to/ros_management.bash -ros2 -k # default to ROS 2 + store settings
+source /path/to/ros_management.bash -k && ros2ws # default to ROS 2 + store settings
 ros1ws # ros1 is now active and will be active in new terminals
 ```
 ```bash
-source /path/to/ros_management.bash -ros2 -k -p # also activate prompt
+source /path/to/ros_management.bash -k -p # also activate prompt
 ros1ws # ros1 is now active and will be active in new terminals, [ROS1] is displayed as well
 ```
 
@@ -99,6 +99,7 @@ It provides additional keywords:
 - `-p`: similar to `--packages-select`
 - `-pu`: similar to `--packages-up-to`
 - `-t`, `--this`: compiles only the package that includes the current directory
+- `-tu`, `--this-up-to`: compiles only up to the package that includes the current directory
 
 ### Network: restrict to a network interface
 
