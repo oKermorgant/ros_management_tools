@@ -50,12 +50,11 @@ __ros_management_add()
 # also indicates on which robot we are working, if any
 __ros_management_prompt()
 {
-    if [[ $ROS_MANAGEMENT_ARGS != *"-p"* ]] || [[ -z $(which rosversion) ]]; then
+    if [[ $ROS_MANAGEMENT_ARGS != *"-p"* ]] || [[ -z $ROS_DISTRO ]]; then
         return
     fi
 
     local token_color="\[\e[39m\]"
-    local distro=$(rosversion -d)
 
     # get sourced version, if any
     local default_ros="0"
@@ -64,7 +63,7 @@ __ros_management_prompt()
     fi
 
     # we disable the prompt for the version that was given in source (assumed to be the default/quiet version)
-    if [[ $distro == "noetic" ]] || [[ $distro == "<unknown>" ]] || [[ $distro == "Debian" ]]; then
+    if [[ $ROS_DISTRO == "noetic" ]] || [[ $ROS_DISTRO == "<unknown>" ]] || [[ $ROS_DISTRO == "Debian" ]]; then
         if [[ $default_ros != "1" ]]; then
             local ROS_COLOR="\[\e[38;5;106m\]"  # noetic green
             local ROS_PROMPT="${ROS_COLOR}[ROS1"
@@ -72,11 +71,12 @@ __ros_management_prompt()
     else
         if [[ $default_ros != "2" ]]; then
             local ROS_COLOR=$(
-            case "$distro" in
+            case "$ROS_DISTRO" in
                 ("foxy") echo "166" ;;
                 ("galactic") echo "87" ;;
                 ("rolling") echo "40" ;;
                 ("humble") echo "74" ;;
+                ("jazzy") echo "20" ;;
                 (*) echo "255" ;;
             esac)
             local ROS_COLOR="\[\e[38;5;${ROS_COLOR}m\]"
