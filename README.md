@@ -166,6 +166,12 @@ ros2_workspaces="/opt/ros/humble /some/path/to/this_new_project" # <- the one th
 ```
 At this point you should be rigourous enough to re-source all terminals to make sure they use the same workspaces.
 
+# Some bonus
+
+## Compiling while Gazebo is running
+
+Gazebo can be quite resource-hungry which leads to longer compilation times when working on a node in parallel. The function `gz_compile_watchdog`, defined in `ros_management.bash`, will pause Gazebo when one of this processes is detected: `cmake, c++, colcon, catkin`.
+
 
 ## IDE configuration
 

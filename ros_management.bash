@@ -670,6 +670,31 @@ else
     fi
 fi
 
+# function to pause Gazebo when compiling
+gz_compile_watchdog()
+{
+    local compilers="cmake|c\+\+|colcon|catkin"
+
+    # get gz world control
+    local gz_control=$(gz service -l | grep -E "/world/[a-zA-Z0-9_]+/control" -o -m 1)
+    local gz_running=1
+
+    while sleep 1 ;
+    do
+        local compiling=$(ps -A | grep -w -E "$compilers" -c)
+        if (( $compiling > 0 && $gz_running > 0 )); then
+            echo "Pausing Gz"
+            gz service -s $gz_control --reqtype gz.msgs.WorldControl --reptype gz.msgs.Boolean --timeout 3000 --req 'pause: true'  &> /dev/null
+            local gz_running=0
+        fi
+        if (( $compiling == 0 && $gz_running == 0 )); then
+            echo "Unpausing Gz"
+            gz service -s $gz_control --reqtype gz.msgs.WorldControl --reptype gz.msgs.Boolean --timeout 3000 --req 'pause: false' &> /dev/null
+            local gz_running=1
+        fi
+    done
+}
+
 if [[ $ROS_VERSION -eq 2 ]]; then
     complete -W "$(ros2 pkg list)" ros2cd
     complete -W "$(ros2 pkg list)" colclean
