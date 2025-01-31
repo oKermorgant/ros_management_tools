@@ -189,6 +189,17 @@ ros2cd()
 # Activate ROS 1 ws
 ros1ws()
 {
+    # check if manual sourcing is mixed with this tool
+    local manual_source=$(sed -r '/^(\s*#|$)/d;' ~/.bashrc | grep -E "source.*setup.*sh" | sed -e 's/source //g')
+    if [ ! -z "$manual_source" ]; then
+        echo "You mix ros_management_tools and manual sourcing in .bashrc, this may have undefined behavior"
+        echo "   - ros1_workspaces: $ros1_workspaces"
+        for ws in $manual_source
+        do
+            echo "   - manual sourcing: $ws"
+        done
+    fi
+
     export ROS_VERSION=1
     export ROS_DISTRO="<unknown>"
     # Clean ROS 2 paths
