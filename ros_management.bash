@@ -223,6 +223,17 @@ ros1ws()
 # Activate ROS 2 ws
 ros2ws()
 {
+    # check if manual sourcing is mixed with this tool
+    local manual_source=$(sed -r '/^(\s*#|$)/d;' ~/.bashrc | grep -E "source.*setup.*sh" | sed -e 's/source //g')
+    if [ ! -z "$manual_source" ]; then
+        echo "You mix ros_management_tools and manual sourcing in .bashrc, colbuild will have undefined behavior"
+        echo "   - ros2_workspaces: $ros2_workspaces"
+        for ws in $manual_source
+        do
+            echo "   - manual sourcing: $ws"
+        done
+    fi
+
     # Clean ROS 1 paths
     export PYTHONPATH=$(__ros_management_remove_paths "$PYTHONPATH" $ros1_workspaces)
     export CMAKE_PREFIX_PATH=$(__ros_management_remove_paths "$CMAKE_PREFIX_PATH" $ros1_workspaces)
@@ -620,6 +631,21 @@ ros_baxter()
     # prompt and store
     __ros_management_prompt baxter 124
     __ros_management_add ros_baxter
+}
+
+ros_franka()
+{
+    # ROS 1 uses Franka's ROSMASTER through Wifi
+    # get all network interfaces
+    local wifi_interface=$(for dev in /sys/class/net/*; do [ -e "$dev"/wireless ] && echo ${dev##*/}; done)
+    ros_master $wifi_interface "franka.local"
+
+    # force ROS 2 on localhost, Franka runs on ROS 1 anyway
+    ros_restrict lo --nohistory
+
+    # prompt and store
+    __ros_management_prompt franka 39
+    __ros_management_add ros_franka
 }
 
 ros_turtle()
