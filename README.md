@@ -9,7 +9,7 @@ Compared to classical tutorials, this tool takes care of sourcing the ROS worksp
 ```bash
 # your future .bashrc
 ros1_workspaces="/opt/ros/noetic ~/a_first_ros1_workspace ~/main_ros1_overlay"
-ros2_workspaces="/opt/ros/foxy ~/some_ros2_workspace ~/main_ros2_overlay"
+ros2_workspaces="/opt/ros/jazzy ~/some_ros2_workspace ~/main_ros2_overlay"
 source /path/to/ros_management.bash
 ```
 
@@ -33,10 +33,10 @@ If `skel` is used or if the destination is outside the current user home, it wil
 After sourcing the script, calling `ros1ws` or `ros2ws` will source the corresponding workspaces in this terminal:
 
 ```bash
-ros2_workspaces="/opt/ros/foxy ~/some_ros2_workspace ~/main_ros2_overlay"
+ros2_workspaces="/opt/ros/jazzy ~/some_ros2_workspace ~/main_ros2_overlay"
 
 # sourcing ros_management.bash and calling ros2ws is equivalent to:
-source /opt/ros/foxy/setup.bash
+source /opt/ros/jazzy/setup.bash
 source ~/some_ros2_workspace/install/setup.bash
 source ~/main_ros2_overlay/install/setup.bash
 # except it also cleans ROS 1 paths (from ros1_workspaces)
@@ -77,6 +77,15 @@ ros1ws # ros1 is now active and will be active in new terminals
 ```bash
 source /path/to/ros_management.bash -k -p # also activate prompt
 ros1ws # ros1 is now active and will be active in new terminals, [ROS1] is displayed as well
+```
+
+### Recommended arguments
+
+While the default behavior is to stick to what ROS 2 expects (e.g. source in every terminal, do not change the prompt, communicate on the whole network), the recommended way to source the script is to activate all of them:
+
+```bash
+ros2_workspaces="/opt/ros/jazzy ~/some_ros2_workspace ~/main_ros2_overlay"
+source /path/to/ros_management.bash -p -k -lo -ros2
 ```
 
 ## ROS 2 functions

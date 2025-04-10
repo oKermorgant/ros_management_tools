@@ -655,7 +655,7 @@ ros_franka()
     ros_restrict lo --nohistory
 
     # prompt and store
-    __ros_management_prompt franka 39
+    __ros_management_prompt franka 37
     __ros_management_add ros_franka
 }
 
