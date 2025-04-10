@@ -63,7 +63,7 @@ __ros_management_prompt()
     fi
 
     # we disable the prompt for the version that was given in source (assumed to be the default/quiet version)
-    if [[ $ROS_DISTRO == "noetic" ]] || [[ $ROS_DISTRO == "<unknown>" ]] || [[ $ROS_DISTRO == "Debian" ]]; then
+    if [[ $ROS_VERSION == "1" ]] || [[ $ROS_DISTRO == "noetic" ]] || [[ $ROS_DISTRO == "<unknown>" ]] || [[ $ROS_DISTRO == "Debian" ]] || [[ $ROS_DISTRO == "obese" ]]; then
         if [[ $default_ros != "1" ]]; then
             local ROS_COLOR="\[\e[38;5;106m\]"  # noetic green
             local ROS_PROMPT="${ROS_COLOR}[ROS1"
@@ -76,7 +76,7 @@ __ros_management_prompt()
                 ("galactic") echo "87" ;;
                 ("rolling") echo "40" ;;
                 ("humble") echo "74" ;;
-                ("jazzy") echo "20" ;;
+                ("jazzy") echo "90" ;;
                 (*) echo "255" ;;
             esac)
             local ROS_COLOR="\[\e[38;5;${ROS_COLOR}m\]"
