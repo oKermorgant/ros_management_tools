@@ -50,7 +50,7 @@ __ros_management_add()
 # also indicates on which robot we are working, if any
 __ros_management_prompt()
 {
-    if [[ $ROS_MANAGEMENT_ARGS != *"-p"* ]] || [[ -z $ROS_DISTRO ]]; then
+    if [[ $ROS_MANAGEMENT_ARGS != *"-p"* ]] || [[ -z $ROS_VERSION ]]; then
         return
     fi
 
@@ -63,7 +63,7 @@ __ros_management_prompt()
     fi
 
     # we disable the prompt for the version that was given in source (assumed to be the default/quiet version)
-    if [[ $ROS_VERSION == "1" ]] || [[ $ROS_DISTRO == "noetic" ]] || [[ $ROS_DISTRO == "<unknown>" ]] || [[ $ROS_DISTRO == "Debian" ]] || [[ $ROS_DISTRO == "obese" ]]; then
+    if [[ $ROS_VERSION == "1" ]]; then
         if [[ $default_ros != "1" ]]; then
             local ROS_COLOR="\[\e[38;5;106m\]"  # noetic green
             local ROS_PROMPT="${ROS_COLOR}[ROS1"
