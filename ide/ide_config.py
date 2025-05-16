@@ -130,8 +130,16 @@ def gen_vscode(cmake_dir, build_dir, build_type = ''):
     with open(os.path.dirname(os.path.abspath(__file__)) + '/settings.json.template') as f:
         settings = f.read()
 
+    replace_dict = {}
+    replace_dict['<gen_build_dir/>'] = build_dir
+    replace_dict['<gen_install_dir/>'] = install_dir
+    if build_type:
+        replace_dict['<gen_cmake_build_type/>'] = ' -DCMAKE_BUILD_TYPE='+build_type
+    else:
+        replace_dict['<gen_cmake_build_type/>'] = ''
+
     with open(code_dir + '/settings.json', 'w') as f:
-        f.write(settings.replace('<gen_build_dir>', build_dir))
+        f.write(dict_replace(settings, replace_dict))
     with open(code_dir + '/compile_flags.txt', 'w') as f:
         f.write('-xc++\n-std=c++17')
 

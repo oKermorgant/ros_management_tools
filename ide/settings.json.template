@@ -1,10 +1,10 @@
 {
-  "cmake.buildDirectory": "<gen_build_dir>",
+  "cmake.buildDirectory": "<gen_build_dir/>",
   "editor.mouseWheelZoom": true,
-  "cmake.configureArgs": ["-DCMAKE_EXPORT_COMPILE_COMMANDS=1"],
+  "cmake.configureArgs": ["-DCMAKE_EXPORT_COMPILE_COMMANDS=1<gen_cmake_build_type/>"],
   "clangd.arguments": [ "-pretty",
                          "--background-index",
-                         "--compile-commands-dir=<gen_build_dir>/",
+                         "--compile-commands-dir=<gen_build_dir/>",
                          "--query-driver=/usr/bin/clang++"],
   "clangd.fallbackFlags": ["-std=c++17", "-xc++"],
 }
