@@ -18,7 +18,7 @@ def extract(s,left='(',right=')'):
     return s.partition(left)[2].partition(right)[0].strip()
 
 
-def gen_qtcreator(cmake_dir, build_dir, build_type):
+def gen_qtcreator(cmake_dir, build_dir, build_type = ''):
     home = os.path.expanduser('~') + '/'
     envID_file = home + '.config/QtProject/QtCreator.ini'
     confID_file = home + '.config/QtProject/qtcreator/profiles.xml'
@@ -100,7 +100,6 @@ def gen_qtcreator(cmake_dir, build_dir, build_type):
     ct_str = []
     for key in ('year', 'mon', 'mday','hour','min','sec'):
         ct_str.append(str(getattr(ct, 'tm_'+key)).zfill(2))
-    time_str = '{}-{}-{}T{}:{}:{}'.format(*ct_str)
 
     replace_dict = {}
     replace_dict['<gen_version/>'] = qtcVersion.rep()
@@ -122,7 +121,7 @@ def gen_qtcreator(cmake_dir, build_dir, build_type):
         f.write(config)
 
 
-def gen_vscode(cmake_dir, build_dir, build_type = None):
+def gen_vscode(cmake_dir, build_dir, build_type = ''):
     code_dir = cmake_dir + '/.vscode'
     if not os.path.exists(code_dir):
         os.mkdir(code_dir)
@@ -157,7 +156,7 @@ with open(cmake_file) as f:
     cmake = f.read().splitlines()
     
 package = ''
-build_type = None
+build_type = ''
 
 
 class RosBuild:
@@ -229,7 +228,7 @@ for line in cmake:
             try:
                 build_type = extract(line).split()[1].strip('"').strip("'")
             except IndexError:
-                build_type = None
+                build_type = ''
     elif not RosBuild.version:
         if 'catkin_package' in line:
             RosBuild.version = 1
@@ -262,8 +261,9 @@ if bin_dir != build_dir:
     print('  bin directory:   ' + os.path.abspath(bin_dir))
 
 
-if build_type is None:
-
+if build_type:
+    print(f'  build type "{build_type}" from CMakeLists.txt')
+else:
     # try to identify in build directory
     cmake_cache = f'{build_dir}/CMakeCache.txt'
     if os.path.exists(cmake_cache):
@@ -276,10 +276,6 @@ if build_type is None:
                     print(f'  build type "{build_type}" from CMakeCache.txt')
                 break
 
-    if build_type is None:
-        build_type = 'Debug'
-else:
-    print(f'  build type "{build_type}" from CMakeLists.txt')
 print()
 
 
