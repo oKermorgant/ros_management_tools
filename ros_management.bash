@@ -301,6 +301,7 @@ colbuild()
             # also add -t / --this to compile the package we are in
             for arg in $@; do
                 case "$arg" in
+                    ("-d") cmd="$cmd --cmake-args -DCMAKE_BUILD_TYPE=Debug" ;;
                     ("-p") cmd="$cmd --packages-select" ;;
                     ("-pu") cmd="$cmd --packages-up-to" ;;
                     ("-t");&
@@ -344,6 +345,7 @@ colbuild()
             if [ -d "$ws/src/ros1_bridge" ]; then
                 cmd="$cmd  --packages-skip ros1_bridge"
             fi
+            echo "Running $cmd"
             (cd $ws;eval $cmd)
         fi
         # source anyway

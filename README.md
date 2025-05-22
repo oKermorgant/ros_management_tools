@@ -109,6 +109,7 @@ It provides additional keywords:
 - `-pu`: similar to `--packages-up-to`
 - `-t`, `--this`: compiles only the package that includes the current directory
 - `-tu`, `--this-up-to`: compiles only up to the package that includes the current directory
+- `-d`: compile with `CMAKE_BUILD_TYPE=Debug`
 
 ### Network: restrict to a network interface
 
