@@ -4,7 +4,7 @@ import sys
 import os
 from shutil import rmtree
 from time import localtime, sleep
-from subprocess import check_output, Popen, CalledProcessError
+from subprocess import check_output, Popen, CalledProcessError, STDOUT
 import argparse
 
 
@@ -288,7 +288,7 @@ print()
 for ide, generator in (('qtcreator', gen_qtcreator),
                        ('code', gen_vscode)):
     try:
-        available = check_output(['which',ide])
+        available = check_output(['which',ide], stderr=STDOUT)
         generator(cmake_dir, build_dir, build_type)
     except CalledProcessError:
         continue
