@@ -292,6 +292,7 @@ colbuild()
 
     local ws
     local PWD="$(pwd)/"
+    local colcon_done=0
     for ws in $ros2_workspaces; do
 
         # if in this workspace, run colcon
@@ -347,10 +348,17 @@ colbuild()
             fi
             echo "Running $cmd"
             (cd $ws;eval $cmd)
+            local colcon_done=1
         fi
         # source anyway
         __ros_management_register_workspace $ws
     done
+    if [[ $colcon_done -eq 0 ]]; then
+     echo "Current path ($PWD) is not in a known ROS 2 workspace:"
+     for ws in $ros2_workspaces; do
+       echo "  - $ws"
+    done
+    fi
 }
 
 # colcon clean
