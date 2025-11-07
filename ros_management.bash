@@ -275,6 +275,15 @@ ros2ws()
     fi
 }
 
+coltest()
+{
+
+unset ros2_workspaces
+
+
+
+}
+
 # colcon build shortcut
 colbuild()
 {
@@ -285,11 +294,25 @@ colbuild()
     export LD_LIBRARY_PATH=$(__ros_management_remove_paths "$LD_LIBRARY_PATH" $ros1_workspaces)
     unset ROS_DISTRO
 
+      # if ros2_workspaces was not used, initialize from AMENT_PREFIX_PATH
+    if [[ -z ${ros2_workspaces+x} ]]; then
+        IFS=':' read -ra PATHES <<< $AMENT_PREFIX_PATH
+        local THISPATH=""
+        local path
+        for path in "${PATHES[@]}"; do
+            local ws=$(echo $path | awk -F '/install/' '{print $1}')
+
+            if [[ $ros2_workspaces != *"$ws"* ]]; then
+                ros2_workspaces="$ws $ros2_workspaces"
+            fi
+        done
+        echo "Detected workspaces @ $ros2_workspaces"
+    fi
+
     # source ROS 2 workspaces up to this one (not including)
     unset AMENT_PREFIX_PATH
     unset AMENT_CURRENT_PREFIX
     unset COLCON_PREFIX_PATH
-
     local ws
     local PWD="$(pwd)/"
     local colcon_done=0
