@@ -768,16 +768,20 @@ gz_compile_watchdog()
 # display TF tree
 tf_view()
 {
+  echo "Listening to TF data for 5.0 seconds..."
   if [[ "$ROS_VERSION" == "1" ]]; then
-	rosrun tf2_tools view_frames.py
-    else
-        ros2 run tf2_tools view_frames
-    fi
-  open frames*.pdf
-  rm frames*.gv
-  if [[ $# -eq 0 ]]; then
-    rm frames*.pdf
+	rosrun tf2_tools view_frames.py  &>/dev/null
+  else
+    ros2 run tf2_tools view_frames  &>/dev/null
   fi
+  echo "  displaying resulting PDF"
+  if [[ $# -eq 0 ]]; then
+    mv frames*.pdf /tmp/frames.pdf
+  else
+    cp frames*.pdf /tmp/frames.pdf
+  fi
+  open /tmp/frames.pdf  &>/dev/null
+  rm frames*.gv
 }
 
 if [[ $ROS_VERSION -eq 2 ]]; then
