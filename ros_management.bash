@@ -780,7 +780,7 @@ tf_view()
   else
     cp frames*.pdf /tmp/frames.pdf
   fi
-  open /tmp/frames.pdf  &>/dev/null
+  xdg-open /tmp/frames.pdf  &>/dev/null
   rm frames*.gv
 }
 
