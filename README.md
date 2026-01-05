@@ -182,6 +182,10 @@ At this point you should be rigourous enough to re-source all terminals to make 
 
 Gazebo can be quite resource-hungry which leads to longer compilation times when working on a node in parallel. The function `gz_compile_watchdog`, defined in `ros_management.bash`, will pause Gazebo when one of this processes is detected: `cmake, c++, colcon, catkin`.
 
+## View TF tree
+
+The command `tf_view` will call `tf2_tools view_frames` and open the resulting pdf directly, deleting the generated files afterwards.
+
 
 ## IDE configuration
 

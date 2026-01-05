@@ -765,6 +765,21 @@ gz_compile_watchdog()
     done
 }
 
+# display TF tree
+tf_view()
+{
+  if [[ "$ROS_VERSION" == "1" ]]; then
+	rosrun tf2_tools view_frames.py
+    else
+        ros2 run tf2_tools view_frames
+    fi
+  open frames*.pdf
+  rm frames*.gv
+  if [[ $# -eq 0 ]]; then
+    rm frames*.pdf
+  fi
+}
+
 if [[ $ROS_VERSION -eq 2 ]]; then
     complete -W "$(ros2 pkg list)" ros2cd
     complete -W "$(ros2 pkg list)" colclean
