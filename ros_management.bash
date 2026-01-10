@@ -784,6 +784,9 @@ tf_view()
   rm frames*.gv
 }
 
+# why would you want to avoid this for VS Code + CMake?
+export CMAKE_EXPORT_COMPILE_COMMANDS=1
+
 if [[ $ROS_VERSION -eq 2 ]]; then
     complete -W "$(ros2 pkg list)" ros2cd
     complete -W "$(ros2 pkg list)" colclean

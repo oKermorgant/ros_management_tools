@@ -4,7 +4,7 @@ import sys
 import os
 from shutil import rmtree
 from time import localtime, sleep
-from subprocess import check_output, Popen, CalledProcessError, STDOUT
+from subprocess import check_output, Popen, CalledProcessError, STDOUT, run
 import argparse
 
 
@@ -65,7 +65,7 @@ def gen_qtcreator(cmake_dir, build_dir, build_type = ''):
     while True:
 
         if qt_proc is None and (not os.path.exists(envID_file) or not os.path.exists(confID_file)):
-            print('Will run QtCreator once to generate local configuration')
+            print('   (running QtCreator once to generate local configuration)')
             sleep(3)
             qt_proc = Popen(['qtcreator','&'], shell=False)
         try:
@@ -116,7 +116,7 @@ def gen_qtcreator(cmake_dir, build_dir, build_type = ''):
 
     config = '\n'.join(line for line in config.splitlines() if line.strip() != '' and '!--' not in line)
 
-    print('Configuring Qt Creator @ CMakeLists.txt.user')
+    print(' - Configuring Qt Creator @ CMakeLists.txt.user')
     with open(cmake_user, 'w') as f:
         f.write(config)
 
@@ -125,7 +125,7 @@ def gen_vscode(cmake_dir, build_dir, build_type = ''):
     code_dir = cmake_dir + '/.vscode'
     if not os.path.exists(code_dir):
         os.mkdir(code_dir)
-    print('Configuring VS Code @ .vscode/settings.json (C/C++ - CMake Tools - clangd extensions)')
+    print(' - Configuring VS Code @ .vscode/settings.json (C/C++ - CMake Tools - clangd extensions)')
 
     with open(os.path.dirname(os.path.abspath(__file__)) + '/settings.json.template') as f:
         settings = f.read()
@@ -144,14 +144,14 @@ def gen_vscode(cmake_dir, build_dir, build_type = ''):
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.description = 'A script to generate IDE (Qt Creator / VS Code) configuration file for CMake projects.'
-parser.add_argument('-c', metavar='cmakelist_dir', help='Folder of CMakeLists.txt file',default='.')
-parser.add_argument('-b', metavar='build_dir', help='Relative build folder',default='./build')
-parser.add_argument('--clean', action='store_true', default=False)
+parser.add_argument('-c', '--cmake', help='Run CMake', action='store_true', default=False)
+parser.add_argument('-b', '--build', metavar='build_dir', help='Relative build folder',default='build')
+parser.add_argument('--clean', action='store_true', default=False, help='Clean the build folder')
 args = parser.parse_args()
 
-cmake_dir = os.path.abspath(args.c)
+cmake_dir = os.path.abspath('.')
 cmake_file = cmake_dir + '/CMakeLists.txt'
-build_dir = os.path.abspath(cmake_dir + '/' + args.b)
+build_dir = os.path.abspath(f'{cmake_dir}/{args.build}')
 
 if not os.path.exists(cmake_file):
     print('Could not find CMakeLists.txt, exiting')
@@ -209,13 +209,14 @@ class RosBuild:
         return ros_dir
 
     @staticmethod
-    def get_dirs(package):
-        build_dir = ros_dir + '/build/' + package
-        bin_dir = ros_dir + '/devel/.private/' + package + '/lib'
-        install_dir = ros_dir + '/install/' + package
+    def get_dirs(ros_ws, package):
+        ros_ws += '/'
+        build_dir = 'build/' + package
+        bin_dir = 'devel/.private/' + package + '/lib'
+        install_dir = 'install/' + package
         if RosBuild.tool == 'colcon':
             bin_dir = build_dir
-        return build_dir, bin_dir, install_dir
+        return ros_ws+build_dir, ros_ws+bin_dir, ros_ws+install_dir
 
 
 #print('Loading ' + os.path.abspath(cmake_file) + '\n')
@@ -262,13 +263,14 @@ elif args.clean:
     rmtree(build_dir)
     os.mkdir(build_dir)
 
-print('  build directory: ' + os.path.abspath(build_dir))
+print('CMake project configuration')
+print(' - build directory: ' + os.path.abspath(build_dir))
 if bin_dir != build_dir:
-    print('  bin directory:   ' + os.path.abspath(bin_dir))
+    print(' - bin directory:   ' + os.path.abspath(bin_dir))
 
 
 if build_type:
-    print(f'  build type "{build_type}" from CMakeLists.txt')
+    print(f' - build type "{build_type}" from CMakeLists.txt')
 else:
     # try to identify in build directory
     cmake_cache = f'{build_dir}/CMakeCache.txt'
@@ -279,11 +281,12 @@ else:
             if line.startswith('CMAKE_BUILD_TYPE'):
                 build_type = line.split('=')[-1]
                 if build_type:
-                    print(f'  build type "{build_type}" from CMakeCache.txt')
+                    print(f' - build type "{build_type}" from CMakeCache.txt')
                 break
 
-print()
-
+if args.cmake:
+    print(' <-Running CMake->')
+    run(['cmake', cmake_dir], cwd=build_dir)
 
 for ide, generator in (('qtcreator', gen_qtcreator),
                        ('code', gen_vscode)):
@@ -292,3 +295,4 @@ for ide, generator in (('qtcreator', gen_qtcreator),
         generator(cmake_dir, build_dir, build_type)
     except CalledProcessError:
         continue
+
