@@ -22,7 +22,6 @@ def gen_qtcreator(cmake_dir, build_dir, build_type = ''):
     home = os.path.expanduser('~') + '/'
     envID_file = home + '.config/QtProject/QtCreator.ini'
     confID_file = home + '.config/QtProject/qtcreator/profiles.xml'
-    cmake_user = f'{cmake_dir}/CMakeLists.txt.user'
 
     class Version:
         def __init__(self, s):
@@ -116,8 +115,19 @@ def gen_qtcreator(cmake_dir, build_dir, build_type = ''):
 
     config = '\n'.join(line for line in config.splitlines() if line.strip() != '' and '!--' not in line)
 
-    print(' - Configuring Qt Creator @ CMakeLists.txt.user')
-    with open(cmake_user, 'w') as f:
+    cmake_user = 'CMakeLists.txt.user'
+
+    if qtcVersion >= '18':
+        # .user file is now in .qtcreator folder
+        if not os.path.exists(cmake_dir + '/.qtcreator'):
+            os.mkdir(cmake_dir + '/.qtcreator')
+        if os.path.exists(f'{cmake_dir}/{cmake_user}'):
+            os.remove(f'{cmake_dir}/{cmake_user}')
+        cmake_user = '.qtcreator/' + cmake_user
+
+
+    print(f' - Configuring Qt Creator @ {cmake_user}')
+    with open(f'{cmake_dir}/{cmake_user}', 'w') as f:
         f.write(config)
 
 
