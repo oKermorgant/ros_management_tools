@@ -125,17 +125,16 @@ def gen_qtcreator(cmake_dir, build_dir, build_type = ''):
             os.remove(f'{cmake_dir}/{cmake_user}')
         cmake_user = '.qtcreator/' + cmake_user
 
-
-    print(f' - Configuring Qt Creator @ {cmake_user}')
     with open(f'{cmake_dir}/{cmake_user}', 'w') as f:
         f.write(config)
+
+    return 'Qt Creator', cmake_user
 
 
 def gen_vscode(cmake_dir, build_dir, build_type = ''):
     code_dir = cmake_dir + '/.vscode'
     if not os.path.exists(code_dir):
         os.mkdir(code_dir)
-    print(' - Configuring VS Code @ .vscode/settings.json (C/C++ - CMake Tools - clangd extensions)')
 
     with open(os.path.dirname(os.path.abspath(__file__)) + '/settings.json.template') as f:
         settings = f.read()
@@ -150,6 +149,8 @@ def gen_vscode(cmake_dir, build_dir, build_type = ''):
 
     with open(code_dir + '/settings.json', 'w') as f:
         f.write(dict_replace(settings, replace_dict))
+
+    return 'VS Code', '.vscode/settings.json (C/C++ - CMake Tools - clangd extensions)'
 
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -211,9 +212,7 @@ class RosBuild:
         elif os.path.exists(f'{ros_dir}/.catkin_tools'):
             RosBuild.tool = 'catkin'
 
-        if RosBuild.tool:
-            print(f'Configuring for ROS {RosBuild.version} workspace compiled through {RosBuild.tool}')
-        else:
+        if not RosBuild.tool:
             RosBuild.tool = ['catkin','colcon'][RosBuild.version-1]
             print(f'Could not identify build tool, picking {RosBuild.tool} for ROS {RosBuild.version}')
         return ros_dir
@@ -273,7 +272,10 @@ elif args.clean:
     rmtree(build_dir)
     os.mkdir(build_dir)
 
-print('CMake project configuration')
+if RosBuild.tool:
+    print(f'Configuring IDE for ROS {RosBuild.version} package compiled through {RosBuild.tool}')
+else:
+    print('Configuring IDE as plain CMake project')
 print(' - build directory: ' + os.path.abspath(build_dir))
 if bin_dir != build_dir:
     print(' - bin directory:   ' + os.path.abspath(bin_dir))
@@ -302,7 +304,8 @@ for ide, generator in (('qtcreator', gen_qtcreator),
                        ('code', gen_vscode)):
     try:
         available = check_output(['which',ide], stderr=STDOUT)
-        generator(cmake_dir, build_dir, build_type)
+        name, conf = generator(cmake_dir, build_dir, build_type)
+        print(f' - ready for {name} @ {conf}')
     except CalledProcessError:
         continue
 
