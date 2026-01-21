@@ -275,7 +275,7 @@ elif args.clean:
 if RosBuild.tool:
     print(f'Configuring IDE for ROS {RosBuild.version} package compiled through {RosBuild.tool}')
 else:
-    print('Configuring IDE as plain CMake project')
+    print('Configuring IDE as CMake project')
 print(' - build directory: ' + os.path.abspath(build_dir))
 if bin_dir != build_dir:
     print(' - bin directory:   ' + os.path.abspath(bin_dir))
