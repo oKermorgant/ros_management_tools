@@ -7,11 +7,12 @@ if [[ ! -z $2 ]]; then
     for ws in $ros1_workspaces; do
         # if in this workspace, run colcon
         if [[ "$2" = "$ws/"* ]]; then
-            bash -i -c "ros1ws - && $1 $(realpath $2)"
+            ros1ws - && $@
             exit
         fi
     done
 fi
 
 # otherwise defaults to ROS 2
-bash -i -c "ros2ws - && $1 $(realpath $2)"
+ros2ws -
+$@
