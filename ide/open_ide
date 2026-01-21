@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/bash -i
 
 # Opens an IDE while sourcing the suitable ROS workspace
 
