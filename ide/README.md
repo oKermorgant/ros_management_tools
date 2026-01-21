@@ -1,7 +1,6 @@
 # IDE Configuration for CMake packages (ROS 1 / ROS 2 / non-ROS)
 
-A script to generate QtCreator and VS Code configuration file for CMake, ROS 1 and ROS 2 projects
-
+A script to generate Qt Creator and VS Code configuration file for CMake, ROS 1 and ROS 2 projects.
 
 ## Usage
 
@@ -9,13 +8,13 @@ Just run the script from the folder where the `CMakeLists.txt` file is. It will 
 
 ## Options
 
-- `-c <path>` : to indicate the path to `CMakeLists.txt` if it is not the current folder (default `.`)
-- `-b <path>` : build folder (relative to CMake file) to use (default `./build` for raw CMake projects or standard package build folder for ROS packages)
-- `--clean` : deletes the build folder before creating it again (default False)
+- `-c` or `--cmake`: runs CMake while generating the IDE file (default False)
+- `-b <path>`: build folder (relative to CMake file) to use (default `./build` for raw CMake projects or standard package build folder for ROS packages)
+- `--clean`: deletes the build folder before creating it again (default False)
 
 ## Generated files
 
-- for Qt Creator: `CMakeLists.txt.user`
+- for Qt Creator: `.qtcreator/CMakeLists.txt.user`
 - for VS Code: `.vscode/settings.json`
 
 ### Why the symbolic links
