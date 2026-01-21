@@ -5,7 +5,7 @@
 # Olivier Kermorgant
 
 # ROS 1 / 2 workspaces are defined in overlay ordering
-# ex: ros1_workspaces="/opt/ros/noetic $HOME/ros_underlay $HOME/ros_overlay"
+# ex: ros2_workspaces="/opt/ros/jazzy $HOME/ros_underlay $HOME/ros_overlay"
 
 # replace tilde by home dir in paths
 export ros1_workspaces="${ros1_workspaces//'~'/$HOME}"
@@ -68,20 +68,18 @@ __ros_management_prompt()
             local ROS_COLOR="\[\e[38;5;106m\]"  # noetic green
             local ROS_PROMPT="${ROS_COLOR}[ROS1"
         fi
-    else
-        if [[ $default_ros != "2" ]]; then
-            local ROS_COLOR=$(
-            case "$ROS_DISTRO" in
-                ("foxy") echo "166" ;;
-                ("galactic") echo "87" ;;
-                ("rolling") echo "40" ;;
-                ("humble") echo "74" ;;
-                ("jazzy") echo "90" ;;
-                (*) echo "255" ;;
-            esac)
-            local ROS_COLOR="\[\e[38;5;${ROS_COLOR}m\]"
-            local ROS_PROMPT="${ROS_COLOR}[ROS2"
-        fi
+    elif [[ $default_ros != "2" ]]; then
+        local ROS_COLOR=$(
+        case "$ROS_DISTRO" in
+            ("foxy") echo "166" ;;
+            ("galactic") echo "87" ;;
+            ("rolling") echo "40" ;;
+            ("humble") echo "74" ;;
+            ("jazzy") echo "90" ;;
+            (*) echo "255" ;;
+        esac)
+        local ROS_COLOR="\[\e[38;5;${ROS_COLOR}m\]"
+        local ROS_PROMPT="${ROS_COLOR}[ROS2"
     fi
 
     # split current PS1
@@ -95,12 +93,10 @@ __ros_management_prompt()
                 local token_color=${BASH_REMATCH[2]}
                 local token=${BASH_REMATCH[4]}
             fi
-        else
+        elif [[ $cur_prompt != "ROS"* ]]; then
             # special token only
-            if [[ $cur_prompt != "ROS"* ]]; then
-                local token_color=${BASH_REMATCH[1]}
-                local token=$cur_prompt
-            fi
+            local token_color=${BASH_REMATCH[1]}
+            local token=$cur_prompt
         fi
     fi
 
