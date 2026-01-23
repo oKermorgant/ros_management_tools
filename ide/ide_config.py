@@ -187,7 +187,8 @@ class RosBuild:
         # if several, pick the one that also has a 'build' folder
 
         if '/src' not in pkg_dir:
-            print('The package path does not comply with ROS standard (no src folder)')
+            print(f'You are trying to configure a ROS {RosBuild.version} package but it seems this package is not in a ROS workspace (no src folder)')
+            print(f'Make sure the folder in inside a ROS {RosBuild.version} workspace')
             return None
 
         tree = pkg_dir.split('/src')
