@@ -2,7 +2,6 @@
   "cmake.buildDirectory": "<gen_build_dir/>",
   "editor.mouseWheelZoom": true,
   "cmake.configureArgs": ["-DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE"<gen_cmake_build_type/>],
-   "cmake.generator": "Unix Makefiles",
   "clangd.arguments": [ "-pretty",
                          "--background-index=false",
                          "--compile-commands-dir=<gen_build_dir/>",
