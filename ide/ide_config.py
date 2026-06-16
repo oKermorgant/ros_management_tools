@@ -185,18 +185,30 @@ class RosBuild:
 
         pkg_dir = os.path.realpath(pkg_dir)
         for ros,env in (('colcon', 'ros2_workspaces'),
-                        ('catkin', 'ros1_workspaces')):
+                        ('catkin', 'ros1_workspaces'),
+                        ('colcon', 'AMENT_PREFIX_PATH')):
+            if env not in os.environ:
+                continue
 
-            workspaces = os.environ[env].split()
+            if env == 'AMENT_PREFIX_PATH':
+                workspaces = os.environ['AMENT_PREFIX_PATH'].split(':')
+                def extract_root(path):
+                    if '/install/' not in path:
+                        return path
+                    return path[:path.rfind('/install')]
+                workspaces = set(map(extract_root, workspaces))
+            else:
+                workspaces = os.environ[env].split()
+
             for ws in workspaces:
                 ws_abs = os.path.realpath(ws)
                 if ws_abs in pkg_dir:
                     RosBuild.tool = ros
                     return ws
 
-        if not RosBuild.tool:
-            RosBuild.tool = ['catkin','colcon'][RosBuild.version-1]
-            print(f'Could not identify build tool, picking {RosBuild.tool} for ROS {RosBuild.version}')
+        # could not identify from known workspaces, try to find it
+        RosBuild.tool = ['catkin','colcon'][RosBuild.version-1]
+        print(f'Assuming {RosBuild.tool} for ROS {RosBuild.version}. Cannot identify build folder.')
         return None
 
     @staticmethod
@@ -241,6 +253,12 @@ if RosBuild.version and '-b' not in sys.argv:
 
     ros_ws = RosBuild.find_ws_root(os.path.abspath(cmake_dir))
     if ros_ws is None:
+        # try with AMENT env for ROS 2
+
+
+
+
+
         sys.exit(0)
 
     build_dir, bin_dir, install_dir = RosBuild.get_dirs(ros_ws, package)
