@@ -13,13 +13,13 @@ export ros2_workspaces="${ros2_workspaces//'~'/$HOME}"
 export PS1_ori=$PS1
 
 # store arguments to this script to be used in inner functions
-ROS_MANAGEMENT_ARGS="$*"
+__RMT_ARGS="$*"
 
 
 # add a command for the next auto-init
-__ros_management_add()
+__rmt_add()
 {
-    if [[ ! $ROS_MANAGEMENT_ARGS == *"-k"* ]]; then
+    if [[ ! $__RMT_ARGS == *"-k"* ]]; then
         return
     fi
 
@@ -48,9 +48,9 @@ __ros_management_add()
 
 # add ROS info to the prompt in order to know what version we use
 # also indicates on which robot we are working, if any
-__ros_management_prompt()
+__rmt_prompt()
 {
-    if [[ $ROS_MANAGEMENT_ARGS != *"-p"* ]] || [[ -z $ROS_VERSION ]]; then
+    if [[ $__RMT_ARGS != *"-p"* ]] || [[ -z $ROS_VERSION ]]; then
         return
     fi
 
@@ -58,7 +58,7 @@ __ros_management_prompt()
 
     # get sourced version, if any
     local default_ros="0"
-    if [[ $ROS_MANAGEMENT_ARGS =~ (.*)(-ros)([12])(.*) ]]; then
+    if [[ $__RMT_ARGS =~ (.*)(-ros)([12])(.*) ]]; then
         local default_ros="${BASH_REMATCH[3]}"
     fi
 
@@ -126,7 +126,7 @@ __ros_management_prompt()
 
 # Takes a path string separated with colons and a list of sub-paths
 # Removes path elements containing sub-paths
-__ros_management_remove_paths()
+__rmt_remove_paths()
 {
 IFS=':' read -ra PATHES <<< "$1"
 local THISPATH=""
@@ -148,7 +148,7 @@ echo $THISPATH | cut -c2-
 }
 
 # Register a single ROS 1 / 2 workspace, try to source in order : ws > ws/install > ws/devel (ROS 1)
-__ros_management_register_workspace()
+__rmt_register_workspace()
 {
 local subs="/ /install/ /devel/"
 local sub
@@ -163,6 +163,25 @@ do
         return
     fi
 done
+}
+
+# Returns the list of workspaces, whether we use ros2_workspaces or not
+__rmt_ros2_ws()
+{
+    # if ros2_workspaces was not used, initialize from AMENT_PREFIX_PATH
+    if [[ -z ${ros2_workspaces+x} ]]; then
+        IFS=':' read -ra PATHES <<< $AMENT_PREFIX_PATH
+        local THISPATH=""
+        local path
+        for path in "${PATHES[@]}"; do
+            local ws=$(echo $path | awk -F '/install/' '{print $1}')
+
+            if [[ $ros2_workspaces != *"$ws"* ]]; then
+                ros2_workspaces="$ws $ros2_workspaces"
+            fi
+        done
+    fi
+    echo $ros2_workspaces
 }
 
 # Equivalent of roscd but jumps to the source, assuming a symlink install
@@ -199,21 +218,22 @@ ros1ws()
     export ROS_VERSION=1
     export ROS_DISTRO="<unknown>"
     # Clean ROS 2 paths
-    export PYTHONPATH=$(__ros_management_remove_paths "$PYTHONPATH" $ros2_workspaces)
-    export CMAKE_PREFIX_PATH=$(__ros_management_remove_paths "$CMAKE_PREFIX_PATH" $ros2_workspaces)
-    export PATH=$(__ros_management_remove_paths "$PATH" $ros2_workspaces)
-    export LD_LIBRARY_PATH=$(__ros_management_remove_paths "$LD_LIBRARY_PATH" $ros2_workspaces)
+    local ros2_workspaces=$(__rmt_ros2_ws)
+    export PYTHONPATH=$(__rmt_remove_paths "$PYTHONPATH" $ros2_workspaces)
+    export CMAKE_PREFIX_PATH=$(__rmt_remove_paths "$CMAKE_PREFIX_PATH" $ros2_workspaces)
+    export PATH=$(__rmt_remove_paths "$PATH" $ros2_workspaces)
+    export LD_LIBRARY_PATH=$(__rmt_remove_paths "$LD_LIBRARY_PATH" $ros2_workspaces)
     unset ROS_DISTRO
 
     # register ROS 1 workspaces
     local ws
     for ws in $ros1_workspaces
     do
-        __ros_management_register_workspace $ws
+        __rmt_register_workspace $ws
     done
     for ws in $ros1_workspaces
     do
-        __ros_management_register_workspace $ws
+        __rmt_register_workspace $ws
     done
 
     if [ -f /usr/share/gazebo/setup.sh ]; then
@@ -222,8 +242,8 @@ ros1ws()
 
     # change prompt if you like (actually not by default)
     if [[ $# -eq 0 ]]; then
-        __ros_management_prompt
-        __ros_management_add ros1ws
+        __rmt_prompt
+        __rmt_add ros1ws
     fi
 }
 
@@ -231,79 +251,59 @@ ros1ws()
 ros2ws()
 {
     # check if manual sourcing is mixed with this tool
-    local manual_source=$(sed -r '/^(\s*#|$)/d;' ~/.bashrc | grep -E "source.*setup.*sh" | sed -e 's/source //g')
-    if [ ! -z "$manual_source" ]; then
-        echo "You mix ros_management_tools and manual sourcing in .bashrc, colbuild will have undefined behavior"
-        echo "   - ros2_workspaces: $ros2_workspaces"
-        for ws in $manual_source
-        do
-            echo "   - manual sourcing: $ws"
-        done
+    if [[ -z ${ros2_workspaces+x} ]]; then
+        local manual_source=$(sed -r '/^(\s*#|$)/d;' ~/.bashrc | grep -E "source.*setup.*sh" | sed -e 's/source //g')
+        if [ ! -z "$manual_source" ]; then
+            echo "You mix ros_management_tools and manual sourcing in .bashrc, colbuild will have undefined behavior"
+            echo "   - ros2_workspaces: $ros2_workspaces"
+            for ws in $manual_source
+            do
+                echo "   - manual sourcing: $ws"
+            done
+        fi
     fi
 
+    local ros2_workspaces=$(__rmt_ros2_ws)
+
     # Clean ROS 1 paths
-    export PYTHONPATH=$(__ros_management_remove_paths "$PYTHONPATH" $ros1_workspaces)
-    export CMAKE_PREFIX_PATH=$(__ros_management_remove_paths "$CMAKE_PREFIX_PATH" $ros1_workspaces)
-    export PATH=$(__ros_management_remove_paths "$PATH" $ros1_workspaces)
-    export LD_LIBRARY_PATH=$(__ros_management_remove_paths "$LD_LIBRARY_PATH" $ros1_workspaces)
+    export PYTHONPATH=$(__rmt_remove_paths "$PYTHONPATH" $ros1_workspaces)
+    export CMAKE_PREFIX_PATH=$(__rmt_remove_paths "$CMAKE_PREFIX_PATH" $ros1_workspaces)
+    export PATH=$(__rmt_remove_paths "$PATH" $ros1_workspaces)
+    export LD_LIBRARY_PATH=$(__rmt_remove_paths "$LD_LIBRARY_PATH" $ros1_workspaces)
     unset ROS_DISTRO
 
     # register ROS 2 workspaces
     local ws
     for ws in $ros2_workspaces
     do
-        __ros_management_register_workspace $ws
+        __rmt_register_workspace $ws
     done
 
     # add base ROS 1 libs in case some ROS 2 pkg need them
     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/ros/noetic/lib
 
-
     if [ -f /usr/share/gazebo/setup.sh ]; then
         source /usr/share/gazebo/setup.sh
     fi
 
-
     # update ROS prompt
     if [[ $# -eq 0 ]]; then
-        __ros_management_prompt
-        __ros_management_add ros2ws
+        __rmt_prompt
+        __rmt_add ros2ws
     fi
-}
-
-coltest()
-{
-
-unset ros2_workspaces
-
-
-
 }
 
 # colcon build shortcut
 colbuild()
 {
     # Clean ROS 1 paths
-    export PYTHONPATH=$(__ros_management_remove_paths "$PYTHONPATH" $ros1_workspaces)
-    export CMAKE_PREFIX_PATH=$(__ros_management_remove_paths "$CMAKE_PREFIX_PATH" $ros1_workspaces)
-    export PATH=$(__ros_management_remove_paths "$PATH" $ros1_workspaces)
-    export LD_LIBRARY_PATH=$(__ros_management_remove_paths "$LD_LIBRARY_PATH" $ros1_workspaces)
+    export PYTHONPATH=$(__rmt_remove_paths "$PYTHONPATH" $ros1_workspaces)
+    export CMAKE_PREFIX_PATH=$(__rmt_remove_paths "$CMAKE_PREFIX_PATH" $ros1_workspaces)
+    export PATH=$(__rmt_remove_paths "$PATH" $ros1_workspaces)
+    export LD_LIBRARY_PATH=$(__rmt_remove_paths "$LD_LIBRARY_PATH" $ros1_workspaces)
     unset ROS_DISTRO
 
-      # if ros2_workspaces was not used, initialize from AMENT_PREFIX_PATH
-    if [[ -z ${ros2_workspaces+x} ]]; then
-        IFS=':' read -ra PATHES <<< $AMENT_PREFIX_PATH
-        local THISPATH=""
-        local path
-        for path in "${PATHES[@]}"; do
-            local ws=$(echo $path | awk -F '/install/' '{print $1}')
-
-            if [[ $ros2_workspaces != *"$ws"* ]]; then
-                ros2_workspaces="$ws $ros2_workspaces"
-            fi
-        done
-        echo "Detected workspaces @ $ros2_workspaces"
-    fi
+    local ros2_workspaces=$(__rmt_ros2_ws)
 
     # source ROS 2 workspaces up to this one (not including)
     unset AMENT_PREFIX_PATH
@@ -325,6 +325,7 @@ colbuild()
                     ("-p") cmd="$cmd --packages-select" ;;
                     ("-pu") cmd="$cmd --packages-up-to" ;;
                     ("-t");&
+                    (".");&
                     ("--this")
                     # identify this package
                     local this_dir=$PWD
@@ -370,7 +371,7 @@ colbuild()
             local colcon_done=1
         fi
         # source anyway
-        __ros_management_register_workspace $ws
+        __rmt_register_workspace $ws
     done
     if [[ $colcon_done -eq 0 ]]; then
      echo "Current path ($PWD) is not in a known ROS 2 workspace:"
@@ -384,6 +385,7 @@ colbuild()
 colclean()
 {
     local PWD="$(pwd)/"
+    local ros2_workspaces=$(__rmt_ros2_ws)
     # no args = clean this package
     if [[ $# -eq 0 ]]; then        
         for ws in $ros2_workspaces; do
@@ -406,18 +408,10 @@ colclean()
             fi
         done
     else
-        local pkgs="$*"
-        local ws_root=""
-        for ws_root in $ros2_workspaces; do
-            # if in this workspace, delete corresponding folders
-            if [[ "$PWD" = "$ws_root/"* ]]; then
-                local cmd="rm -rf"
-                for pkg in $pkgs; do
-                    local cmd="$cmd build/$pkg install/$pkg log/$pkg"
-                done
-                break
-            fi
-        done
+        local pkg="$1"
+        local pkg_ws=$(ros2 pkg prefix $pkg)
+        local ws_root=$(realpath "$(ros2 pkg prefix $pkg)/../../")
+        local cmd="rm -rf build/$pkg install/$pkg log/$pkg"
     fi
     
   if [[ -z $cmd ]]; then
@@ -431,7 +425,7 @@ colclean()
   # check if reply is null or equal to Y or y
   if [[ -z $REPLY ]] || [[ $REPLY =~ ^[Yy]$ ]]; then
     (cd $ws_root;eval $cmd)
-    __ros_management_register_workspace $ws_root
+    __rmt_register_workspace $ws_root
   else
     echo "  operation cancelled"
   fi
@@ -500,8 +494,8 @@ ros_restrict()
 
         # only update history and prompt if raw call
         if [[ $# -eq 1 ]]; then
-            __ros_management_add ros_restrict $interface
-            __ros_management_prompt __CLEAN
+            __rmt_add ros_restrict $interface
+            __rmt_prompt __CLEAN
         fi
         return
     fi
@@ -564,8 +558,8 @@ ros_restrict()
 
     # only update history and prompt if raw call
     if [[ $# -eq 1 ]]; then
-        __ros_management_add ros_restrict $interface
-        __ros_management_prompt $interface 15
+        __rmt_add ros_restrict $interface
+        __rmt_prompt $interface 15
     fi
 }
 
@@ -615,9 +609,6 @@ ros2restart()
     ros2 daemon start
 }
 
-# special functions for network setup on Centrale Nantes's robots
-# show several usages of ros_restrict
-
 # configure ROS_IP and ROS_MASTER_URI
 # give a network interface and the ROS_MASTER_URI to be used, if not the localhost
 ros_master()
@@ -626,8 +617,8 @@ ros_master()
     if [[ $# -eq 0 ]]; then
         unset ROS_MASTER_URI
         unset ROS_IP
-        __ros_management_prompt __CLEAN
-        __ros_management_add ros_master
+        __rmt_prompt __CLEAN
+        __rmt_add ros_master
         return
     fi
 
@@ -639,8 +630,8 @@ ros_master()
         export ROS_MASTER_URI="http://$ROS_IP:11311"
     fi
 
-    __ros_management_prompt $1
-    __ros_management_add ros_master $1 $2
+    __rmt_prompt $1
+    __rmt_add ros_master $1 $2
 }
 
 ros_reset()
@@ -652,77 +643,13 @@ ros_reset()
     # ROS_LOCALHOST_ONLY with cyclonedds URI
     ros_restrict lo --nohistory
 
-    __ros_management_prompt __CLEAN
-    __ros_management_add ros_reset
+    __rmt_prompt __CLEAN
+    __rmt_add ros_reset
 }
 
-ros_baxter()
-{
-    # ROS 1 uses Baxter's ROSMASTER through ethernet
-    # get all network interfaces
-    local ethernet_interface=$(ip link | awk -F: '$0 !~ "lo|vir|wl|^[^0-9]"{print $2;getline}')
-    # find valid ones on ETH
-    local ethernet_interface=$(for dev in $ethernet_interface; do [[ ! -e /sys/class/net/"$dev"/wireless && $(grep 1 /sys/class/net/"$dev"/carrier) ]] && echo ${dev##*/}; done)
-    ros_master $ethernet_interface "baxter.local"
-
-    # force ROS 2 on localhost, Baxter runs on ROS 1 anyway
-    ros_restrict lo --nohistory
-
-    # prompt and store
-    __ros_management_prompt baxter 124
-    __ros_management_add ros_baxter
-}
-
-ros_franka()
-{
-    # ROS 1 uses Franka's ROSMASTER through Wifi
-    # get all network interfaces
-    local wifi_interface=$(for dev in /sys/class/net/*; do [ -e "$dev"/wireless ] && echo ${dev##*/}; done)
-    ros_master $wifi_interface "franka.local"
-
-    # force ROS 2 on localhost, Franka runs on ROS 1 anyway
-    ros_restrict lo --nohistory
-
-    # prompt and store
-    __ros_management_prompt franka 37
-    __ros_management_add ros_franka
-}
-
-ros_turtle()
-{
-    if [[ $# -eq 0 ]]; then
-        echo "Give a turtlebot number to setup ROS 2 connection"
-        return
-    fi
-
-    # Domain ID depends on turtlebot
-    export ROS_DOMAIN_ID=$1
-
-    # force ROS 2 on wifi, do not save it in history
-    ros_restrict WIFI --nohistory
-
-    # on Wifi we better use discovery server, assuming it is on the robot
-    # let it as an option - it could replace ROS_DOMAIN_ID
-    if [[ $# -ge 2 ]]; then
-       local tbot_domain=$1
-       local tbot_type=${tbot_domain:0:1}
-       local tbot_n=${tbot_domain:1:2}
-
-       if [[ $tbot_type == 2 ]]; then
-        local tbot="turtle" # our Turtlebot2's are called turtle#
-       else
-        local tbot="waffle" # our Turtlebot3's are called waffle#
-       fi
-       export ROS_DISCOVERY_SERVER="$tbot$tbot_n.local:11811"
-    fi
-
-    # prompt and store
-    __ros_management_prompt turtlebot$1 $((111+$1))
-    __ros_management_add ros_turtle $1 $2
-}
 
 # deal with auto init
-if [[ $ROS_MANAGEMENT_ARGS == *"-k"* ]] && [[ -e ~/.ros_management_auto_init ]]; then
+if [[ $__RMT_ARGS == *"-k"* ]] && [[ -e ~/.ros_management_auto_init ]]; then
     # requested + file here
     source ~/.ros_management_auto_init
 else
@@ -731,7 +658,7 @@ else
     ros2ws
     
     # check localhost only
-    if [[ $ROS_MANAGEMENT_ARGS == *"-lo"* ]]; then
+    if [[ $__RMT_ARGS == *"-lo"* ]]; then
         ros_restrict lo
     fi
 fi

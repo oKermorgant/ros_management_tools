@@ -1,19 +1,8 @@
 # Helper functions to configure ROS 2 in terminals
 
-The script `ros_management.bash` is a set of tools to simplify the command line when tweaking ROS 2 (compiling, networking, discovery, etc.).
+The script `ros_management.bash` is a set of tools to simplify the command line when developing with ROS 2 (compiling, networking, discovery, etc.).
 
-It also avoids mixing ROS 1 and ROS 2 workspaces, for people using both.
-
-Compared to classical tutorials, this tool takes care of sourcing the ROS workspaces, as long as they are listed (in overlay order) in the two variables `ros1_workspaces` and `ros2_workspaces`. A classical `.bashrc` is similar to:
-
-```bash
-# your future .bashrc
-ros1_workspaces="/opt/ros/noetic ~/a_first_ros1_workspace ~/main_ros1_overlay"
-ros2_workspaces="/opt/ros/jazzy ~/some_ros2_workspace ~/main_ros2_overlay"
-source /path/to/ros_management.bash
-```
-
-Note that `ros1_workspaces` does not have to be defined at all if you only use ROS 2. Most of the tools in this script are actually for ROS 2.
+It also avoids mixing ROS 1 and ROS 2 workspaces, for people still using both.
 
 ## Installing
 
@@ -28,7 +17,22 @@ Run `install.bash -h` to have an overview of the installation options :
 
 If `skel` is used or if the destination is outside the current user home, it will require sudo privilege.
 
-## Switch between ROS 1 or ROS 2
+
+## Sourcing workspaces with `ros2ws`
+
+It is common to source the workspaces in `.bashrc`, but it is not possible to separate ROS 1 and ROS 2 in this case.
+This tool can take care of sourcing the ROS workspaces, as long as they are listed (in overlay order) in the two variables `ros1_workspaces` and `ros2_workspaces`. A classical `.bashrc` is thus similar to:
+
+```bash
+# your future .bashrc
+ros1_workspaces="/opt/ros/obese ~/a_first_ros1_workspace ~/main_ros1_overlay"
+ros2_workspaces="/opt/ros/jazzy /some/other/ros2/workspace ~/main_ros2_overlay"
+source /path/to/ros_management.bash
+```
+
+Note that `ros1_workspaces` does not have to be defined at all if you only use ROS 2. Most of the tools in this script are actually for ROS 2.
+
+Similarly, `ros2_workspaces` does not have to be defined if you prefer sourcing by hand.
 
 After sourcing the script, calling `ros1ws` or `ros2ws` will source the corresponding workspaces in this terminal:
 
@@ -79,6 +83,8 @@ source /path/to/ros_management.bash -k -p # also activate prompt
 ros1ws # ros1 is now active and will be active in new terminals, [ROS1] is displayed as well
 ```
 
+Using this argument also means that if you run e.g. a IDE from a terminal it will always get the suitable workspaces and options.
+
 ### Recommended arguments
 
 While the default behavior is to stick to what ROS 2 expects (e.g. source in every terminal, do not change the prompt, communicate on the whole network), the recommended way to source the script is to activate all of them:
@@ -90,11 +96,11 @@ source /path/to/ros_management.bash -p -k -lo -ros2
 
 ## ROS 2 functions
 
-Besides the sourcing of ROS 1 / ROS 2 workspace, the main use of the tool is to help configuring ROS 2 in details.
+Besides the sourcing of workspace, the main use of the tool is to help configuring ROS 2 in details.
 
-## `colcon` shortcuts (colbuild)
+## `colbuild`:  `colcon build` with better defaults
 
-In ROS 1, `catkin build` could be run from anywhere inside the workspace while in ROS 2, `colcon build` has to be called from the root (where directories `src`, `build` and `install` lie). In practice, calling `colcon build` from e.g. your package directory will actually use this folder as the workspace.
+Per design, `colcon build` has to be called from the root of the workspace (where directories `src`, `build` and `install` lie). In practice, calling `colcon build` from e.g. your package directory will actually use this folder as the workspace.
 
 The command `colbuild` offers the following behavior:
 
@@ -107,9 +113,13 @@ It provides additional keywords:
 
 - `-p`: similar to `--packages-select`
 - `-pu`: similar to `--packages-up-to`
-- `-t`, `--this`: compiles only the package that includes the current directory
+- `.`, `-t`, `--this`: compiles only the package that includes the current directory
 - `-tu`, `--this-up-to`: compiles only up to the package that includes the current directory
 - `-d`: compile with `CMAKE_BUILD_TYPE=Debug`
+
+## `colclean`:  clean your package
+
+Running `colclean <pkg>` will remove the directories `install/pkg`, `build/pkg` and `log/pkg` from the corresponding workspace.
 
 ### Network: restrict to a network interface
 
@@ -130,7 +140,7 @@ You can get back to localhost only with `ros_reset`. It will set `ROS_LOCALHOST_
 
 ### Network: setup super client for FastDDS discovery
 
-It is usually a good idea to use a [discovery server](https://docs.ros.org/en/humble/Tutorials/Advanced/Discovery-Server/Discovery-Server.html) when using ROS 2 over Wifi. The main issue is that by default, command-line tools are not able to introspect the ROS graph as nodes and topics are not automatically discovered.
+It can be a good idea to use a [discovery server](https://docs.ros.org/en/humble/Tutorials/Advanced/Discovery-Server/Discovery-Server.html) when using ROS 2 over Wifi. The main issue is that by default, command-line tools are not able to introspect the ROS graph as nodes and topics are not automatically discovered.
 
 Calling `ros_super_client` enables a [super client](https://docs.ros.org/en/humble/Tutorials/Advanced/Discovery-Server/Discovery-Server.html#daemon-s-related-tools) session based on the value of `ROS_DISCOVERY_SERVER`, when graph introspection is required.
 
@@ -153,12 +163,13 @@ ros_master eth0 master_hostname.local
 Call `ros_reset` to unset `ROS_IP` and `ROS_MASTER_URI`.
 
 
-## Examples
+## Examples in `rmt_ecn_aliases.bash`
 
 A few functions, that are designed for use at Centrale Nantes, show how to combine the previous tools:
 
 - `ros_baxter`: configure ROS 1 to connect on Baxter's ROSMASTER through ethernet, restrict ROS 2 to localhost
 - `ros_turtle #turtle`: configure ROS 2 to use the same ROS_DOMAIN_ID as our Turtlebots and restrict to Wifi. If another argument is given, relies on a discovery server on the Turtlebot.
+- `ros_franka`: configure ROS 1 to connect on our Franka's ROSMASTER through wifi, restrict ROS 2 to localhost
 
 Any similar function can be defined and used with the custom prompt and stored settings. The function should start with `ros_` and are assumed to be exclusive (only the latest called `ros_` function is stored for future terminals).
 
@@ -170,19 +181,23 @@ The `rosXws` or network function calls should not be put in the `.bashrc` but us
 If you have many workspaces that you source or not source depending on the project you work on, the simplest approach is probably to have several  `ros2_workspaces=` lines in the `.bashrc` where you uncomment the one you currently want to use:
 
 ```bash
-ros2_workspaces="/opt/ros/humble /some/path/to/underwater_sim/workspace"
-ros2_workspaces="/opt/ros/humble /some/path/to/another/amazing/set_of_packages"
-ros2_workspaces="/opt/ros/humble /some/path/to/this_new_project" # <- the one that is used right now
+ros2_workspaces="/opt/ros/jazzy /some/path/to/underwater_sim/workspace"
+ros2_workspaces="/opt/ros/jazzy /some/path/to/another/amazing/set_of_packages"
+ros2_workspaces="/opt/ros/jazzy /some/path/to/this_new_project" # <- the one that is used right now
 ```
 At this point you should be rigourous enough to re-source all terminals to make sure they use the same workspaces.
 
-# Some bonus
+# Some bonus aliases
 
-## Compiling while Gazebo is running
+## `ros2restart`: Restart ROS 2 daemon
+
+This function simply runs `ros2 daemon stop && ros2 daemon start` which can sometimes be the reason why nothing is working anymore.
+
+## `gz_compile_watchdog`: Compiling while Gazebo is running
 
 Gazebo can be quite resource-hungry which leads to longer compilation times when working on a node in parallel. The function `gz_compile_watchdog`, defined in `ros_management.bash`, will pause Gazebo when one of this processes is detected: `cmake, c++, colcon, catkin`.
 
-## View TF tree
+## `tf_view`: View TF tree
 
 The command `tf_view` will call `tf2_tools view_frames` and open the resulting pdf directly, deleting the generated files afterwards.
 
