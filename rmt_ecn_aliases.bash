@@ -68,3 +68,13 @@ ros_turtle()
     __rmt_prompt turtlebot$1 $((111+$1))
     __rmt_add ros_turtle $1 $2
 }
+
+ros_rov()
+{
+    # ROV is on ethernet
+    ros_restrict ETH --nohistory
+
+    __rmt_prompt ROV 37
+    __rmt_add ros_rov
+
+}

@@ -19,16 +19,19 @@ __RMT_ARGS="$*"
 # add a command for the next auto-init
 __rmt_add()
 {
-    if [[ ! $__RMT_ARGS == *"-k"* ]]; then
+    # continue only if settings are stored
+    [[ ! $__RMT_ARGS == *"-k"* ]] && return
+
+    local rmt_init_file=~/.ros/ros_management_auto_init
+    # make sure folder is here
+    [[ ! -e ~/.ros ]] && mkdir -p ~/.ros/
+
+    if [[ ! -e $rmt_init_file ]]; then
+        echo "$*" > $rmt_init_file
         return
     fi
 
-    if [[ ! -e ~/.ros_management_auto_init ]]; then
-        echo "$*" > ~/.ros_management_auto_init
-        return
-    fi
-
-    local ros_history=$(<~/.ros_management_auto_init)
+    local ros_history=$(<$rmt_init_file)
 
     # only valid commands are ros1ws vs ros2ws and any ros_ (exclusive)
     if [[ "$*" == *"ws" ]]; then
@@ -38,10 +41,10 @@ __rmt_add()
     fi
 
     if [[ $updated != $ros_history ]]; then
-        echo "$updated" > ~/.ros_management_auto_init
+        echo "$updated" > $rmt_init_file
     else
         if [[ "$updated" != *"$*"* ]]; then
-            echo "$*" >> ~/.ros_management_auto_init
+            echo "$*" >> $rmt_init_file
         fi
     fi
 }
@@ -610,7 +613,7 @@ ros2restart()
 }
 
 # configure ROS_IP and ROS_MASTER_URI
-# give a network interface and the ROS_MASTER_URI to be used, if not the localhost
+# give a network interface  (or ETH / WIFI) and the ROS_MASTER_URI to be used, if not the localhost
 ros_master()
 {
 
@@ -622,7 +625,17 @@ ros_master()
         return
     fi
 
-    export ROS_IP=$(ip addr show $1 | grep "inet\b" | awk '{print $2}' | cut -d/ -f1)
+    # auto-detect if basic name
+    local interface=$1
+    if [[ $1 == "WIFI" ]]; then
+        local interface=$(for dev in /sys/class/net/*; do [ -e "$dev"/wireless ] && echo ${dev##*/}; done)
+    fi
+    if [[ $1 == "ETH" ]]; then
+        local interface=$(ip link | awk -F: '$0 !~ "lo|vbox|vir|wl|^[^0-9]"{print $2;getline}')
+        local interface=$(for dev in $interface; do [[ ! -e /sys/class/net/"$dev"/wireless && $(grep 1 /sys/class/net/"$dev"/carrier) ]] && echo ${dev##*/}; done)
+    fi
+
+    export ROS_IP=$(ip addr show $interface | grep "inet\b" | awk '{print $2}' | cut -d/ -f1)
 
     if [[ $# -eq 2 ]]; then
         export ROS_MASTER_URI="http://$2:11311"
@@ -630,7 +643,7 @@ ros_master()
         export ROS_MASTER_URI="http://$ROS_IP:11311"
     fi
 
-    __rmt_prompt $1
+    __rmt_prompt $interface
     __rmt_add ros_master $1 $2
 }
 
@@ -649,18 +662,16 @@ ros_reset()
 
 
 # deal with auto init
-if [[ $__RMT_ARGS == *"-k"* ]] && [[ -e ~/.ros_management_auto_init ]]; then
+if [[ $__RMT_ARGS == *"-k"* ]] && [[ -e ~/.ros/ros_management_auto_init ]]; then
     # requested + file here
-    source ~/.ros_management_auto_init
+    source ~/.ros/ros_management_auto_init
 else
 
     # no default, source ROS 2
     ros2ws
-    
-    # check localhost only
-    if [[ $__RMT_ARGS == *"-lo"* ]]; then
-        ros_restrict lo
-    fi
+
+    # check for explicit localhost only
+    [[ $__RMT_ARGS == *"-lo"* ]] && ros_restrict lo
 fi
 
 # function to pause Gazebo when compiling

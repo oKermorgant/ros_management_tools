@@ -72,7 +72,7 @@ The idea is that when working on a given robot, or a given ROS version, the spec
 
 Manual calls to `rosXws` or `ros_restrict` will override `-lo` arguments in new terminals.
 
-Settings are stored in `~/.ros_management_auto_init`, delete this file to restore the default behavior
+Settings are stored in `~/.ros/ros_management_auto_init`, delete this file to restore the default behavior
 
 ```bash
 source /path/to/ros_management.bash -k && ros2ws # default to ROS 2 + store settings
