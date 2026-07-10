@@ -7,11 +7,7 @@
 ros_baxter()
 {
     # ROS 1 uses Baxter's ROSMASTER through ethernet
-    # get all network interfaces
-    local ethernet_interface=$(ip link | awk -F: '$0 !~ "lo|vir|wl|^[^0-9]"{print $2;getline}')
-    # find valid ones on ETH
-    local ethernet_interface=$(for dev in $ethernet_interface; do [[ ! -e /sys/class/net/"$dev"/wireless && $(grep 1 /sys/class/net/"$dev"/carrier) ]] && echo ${dev##*/}; done)
-    ros_master $ethernet_interface "baxter.local"
+    ros_master ETH "baxter.local" --nohistory
 
     # force ROS 2 on localhost, Baxter runs on ROS 1 anyway
     ros_restrict lo --nohistory
@@ -24,9 +20,7 @@ ros_baxter()
 ros_franka()
 {
     # ROS 1 uses Franka's ROSMASTER through Wifi
-    # get all network interfaces
-    local wifi_interface=$(for dev in /sys/class/net/*; do [ -e "$dev"/wireless ] && echo ${dev##*/}; done)
-    ros_master $wifi_interface "franka.local"
+    ros_master WIFI "franka.local" --nohistory
 
     # force ROS 2 on localhost, Franka runs on ROS 1 anyway
     ros_restrict lo --nohistory
@@ -39,7 +33,7 @@ ros_franka()
 ros_turtle()
 {
     if [[ $# -eq 0 ]]; then
-        echo "Give a turtlebot number to setup ROS 2 connection"
+        echo "Give a turtlebot number to setup ROS 2 connection, e.g. 21 for Turtlebot2 no 1"
         return
     fi
 
@@ -74,7 +68,7 @@ ros_rov()
     # ROV is on ethernet
     ros_restrict ETH --nohistory
 
+    # prompt and store
     __rmt_prompt ROV 37
     __rmt_add ros_rov
-
 }

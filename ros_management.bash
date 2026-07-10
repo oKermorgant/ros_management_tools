@@ -404,7 +404,7 @@ colclean()
                 done
                 if [[ -e "$this_dir/package.xml" ]]; then                    
                     local pkg=$(grep -oP '(?<=<name>).*?(?=</name>)' $this_dir/package.xml)
-                    local cmd="rm -rf build/$pkg install/$pkg log/$pkg"
+                    local cmd="rm -rf build/$pkg install/$pkg"
                     local ws_root=$ws
                     break
                 fi
@@ -414,7 +414,7 @@ colclean()
         local pkg="$1"
         local pkg_ws=$(ros2 pkg prefix $pkg)
         local ws_root=$(realpath "$(ros2 pkg prefix $pkg)/../../")
-        local cmd="rm -rf build/$pkg install/$pkg log/$pkg"
+        local cmd="rm -rf build/$pkg install/$pkg"
     fi
     
   if [[ -z $cmd ]]; then
@@ -465,6 +465,7 @@ ros_restrict()
         unset ROS_DISCOVERY_SERVER
         unset ROS_DOMAIN_ID
         unset FASTRTPS_DEFAULT_PROFILES_FILE
+
         # https://answers.ros.org/question/365051/using-ros2-offline-ros_localhost_only1/
         
         if [[ -n $legacy_cyclonedds ]]; then
@@ -612,6 +613,55 @@ ros2restart()
     ros2 daemon start
 }
 
+
+# configure discovery server (Fast DDS)
+# give a network interface  (or ETH / WIFI) and the IP of the discovery server to be used, if not the localhost
+# give no arguments to stop the server
+ros_discovery_server()
+{
+    if [[ $# -eq 0 ]]; then
+        unset ROS_DISCOVERY_SERVER
+        unset ROS_IP
+        local screen_name="ros_discovery_server"
+        if [[ 1 -eq $(screen -ls | grep $screen_name | wc -l) ]]; then
+            echo "[rmt] Stopping discovery server"
+            screen -XS $screen_name kill
+        fi
+        __rmt_prompt __CLEAN
+        __rmt_add ros_discovery_server
+        return
+    fi
+
+    # auto-detect if basic name
+    local interface=$1
+    if [[ $1 == "WIFI" ]]; then
+        local interface=$(for dev in /sys/class/net/*; do [ -e "$dev"/wireless ] && echo ${dev##*/}; done)
+    fi
+    if [[ $1 == "ETH" ]]; then
+        local interface=$(ip link | awk -F: '$0 !~ "lo|vbox|vir|wl|^[^0-9]"{print $2;getline}')
+        local interface=$(for dev in $interface; do [[ ! -e /sys/class/net/"$dev"/wireless && $(grep 1 /sys/class/net/"$dev"/carrier) ]] && echo ${dev##*/}; done)
+    fi
+
+    if [[ $# -eq 2 ]]; then
+        # server is running elsewhere
+        export ROS_DISCOVERY_SERVER="$2:11811"
+    else
+        local this_ip=$(ip addr show $interface | grep "inet\b" | awk '{print $2}' | cut -d/ -f1)
+        export ROS_DISCOVERY_SERVER="$this_ip:11811"
+
+        # run server in separate screen, will exit if already running
+        local screen_name="ros_discovery_server"
+        if [[ 0 -eq $(screen -ls | grep $screen_name | wc -l) ]]; then
+            echo "[rmt] Running discovery server"
+            screen -dmS $screen_name fastdds discovery --server-id 0
+        fi
+    fi
+
+    ros_restrict $interface --nohistory
+    __rmt_prompt $interface
+    __rmt_add ros_discovery_server $*
+}
+
 # configure ROS_IP and ROS_MASTER_URI
 # give a network interface  (or ETH / WIFI) and the ROS_MASTER_URI to be used, if not the localhost
 ros_master()
@@ -637,14 +687,17 @@ ros_master()
 
     export ROS_IP=$(ip addr show $interface | grep "inet\b" | awk '{print $2}' | cut -d/ -f1)
 
-    if [[ $# -eq 2 ]]; then
+    if [[ $# -eq 2 ]] && [[ $2 != "--nohistory" ]]; then
         export ROS_MASTER_URI="http://$2:11311"
     else
         export ROS_MASTER_URI="http://$ROS_IP:11311"
     fi
 
-    __rmt_prompt $interface
-    __rmt_add ros_master $1 $2
+    # only store if raw call
+    if [[ "$*" != *"--nohistory"* ]]; then
+        __rmt_add ros_restrict $interface
+        __rmt_prompt $interface 15
+    fi
 }
 
 ros_reset()
