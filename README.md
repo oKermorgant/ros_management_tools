@@ -150,6 +150,42 @@ If `ros_management.bash` was sourced with `-k` then this restriction is forwarde
 
 You can get back to localhost only with `ros_reset`. It will set `ROS_LOCALHOST_ONLY` (or `ROS_AUTOMATIC_DISCOVERY_RANGE` for Iron+) with prefered interface being `lo` for ROS 2
 
+#### `ros_zenoh`: setup Zenoh behavior
+
+The command reproduces the behavior [detailed here](https://github.com/ros2/rmw_zenoh#examples)
+
+- Running will set:
+    - `RMW_IMPLEMENTATION=rmw_zenoh_cpp`
+    - `ZENOH_CONFIG_OVERRIDE='scouting/multicast/enabled=true'` (local auto discovery)
+- Arguments are:
+    - `-r` starts the router in a detached screen (named `ros_zenoh_router`) if needed
+    - `-r <ip>` the router also connects to the given ip, as [shown here](https://github.com/ros2/rmw_zenoh#connecting-multiple-hosts)
+    - `-c <ip>` configures clients (e.g. nodes) to connect to the router on another host, as [shown here](https://github.com/ros2/rmw_zenoh#connecting-to-the-zenoh-router-on-another-host)
+
+Typical setups for multiple computers:
+
+- Multi-router
+
+```bash
+# host 1
+ros_zenoh -r {host2_ip}
+# host 2
+ros_zenoh -r {host1_ip}
+```
+
+- Single router
+
+```bash
+# host 1
+ros_zenoh -r
+# host 2
+ros_zenoh -c {host1_ip}
+```
+
+
+
+
+
 #### `ros_discovery_server`: setup FastDDS discovery
 
 It can be a good idea to use a [discovery server](https://docs.ros.org/en/humble/Tutorials/Advanced/Discovery-Server/Discovery-Server.html) when using ROS 2 over Wifi.

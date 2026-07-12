@@ -621,7 +621,6 @@ ros_discovery_server()
 {
     if [[ $# -eq 0 ]]; then
         unset ROS_DISCOVERY_SERVER
-        unset ROS_IP
         local screen_name="ros_discovery_server"
         if [[ 1 -eq $(screen -ls | grep $screen_name | wc -l) ]]; then
             echo "[rmt] Stopping discovery server"
@@ -660,6 +659,74 @@ ros_discovery_server()
     ros_restrict $interface --nohistory
     __rmt_prompt $interface
     __rmt_add ros_discovery_server $*
+}
+
+
+# configure Zenoh
+# https://github.com/ros2/rmw_zenoh#examples
+
+# if --router is passed, will let a router run. Give IP of another router to connect to, if not the localhost
+# https://github.com/ros2/rmw_zenoh#connecting-multiple-hosts
+
+# if --client is passed, give the IP of the router to connect to
+# https://github.com/ros2/rmw_zenoh#connecting-to-the-zenoh-router-on-another-host
+
+# give no arguments to stop the router
+ros_zenoh()
+{
+    # use Zenoh + local multicast anyway
+    export RMW_IMPLEMENTATION=rmw_zenoh_cpp
+    export ZENOH_CONFIG_OVERRIDE='scouting/multicast/enabled=true'
+    export ZENOH_ROUTER_CHECK_ATTEMPTS=-1
+
+    if [[ $# -eq 0 ]]; then
+        local screen_name="ros_zenoh_router"
+        if [[ 1 -eq $(screen -ls | grep $screen_name | wc -l) ]]; then
+            echo "[rmt] Stopping Zenoh router"
+            screen -XS $screen_name kill
+        fi
+        __rmt_prompt __CLEAN
+        __rmt_add ros_zenoh
+        return
+    fi
+
+    local initial_args="$*"
+
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+          -c|--client)
+            local client_mode=1
+            local router_ip=$2
+            shift
+            shift
+            ;;
+          -r|--router)
+            local client_mode=0
+            local router_ip=$2
+            shift
+            shift
+            ;;
+           *)
+             shift
+             ;;
+        esac
+    done
+
+    if [[ $client_mode -eq 1 ]]; then
+        export ZENOH_CONFIG_OVERRIDE='mode="client";connect/endpoints=["tcp/'${router_ip}':7447"]'
+    else
+        # run router in separate screen, will exit if already running
+        unset config_override
+        [[ ! -z $router_ip ]] && config_override="ZENOH_CONFIG_OVERRIDE='connect/endpoints=[\"tcp/${router_ip}:7447\"]'"
+        local screen_name="ros_zenoh_router"
+        if [[ 0 -eq $(screen -ls | grep $screen_name | wc -l) ]]; then
+            [[ ! -z $router_ip ]] && echo "[rmt] Running Zenoh router, also connects to ${router_ip}"
+            [[ -z $router_ip ]] && echo "[rmt] Running Zenoh router"
+            screen -dmS $screen_name bash -c "$config_override ros2 run rmw_zenoh_cpp rmw_zenohd"
+        fi
+    fi
+
+    __rmt_add ros_zenoh $initial_args
 }
 
 # configure ROS_IP and ROS_MASTER_URI
