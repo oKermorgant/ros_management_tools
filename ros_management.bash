@@ -453,7 +453,7 @@ ros_restrict()
         local interface=$(for dev in /sys/class/net/*; do [ -e "$dev"/wireless ] && echo ${dev##*/}; done)
     fi
     if [[ $1 == "ETH" ]]; then
-        local interface=$(ip link | awk -F: '$0 !~ "lo|vbox|vir|wl|^[^0-9]"{print $2;getline}')
+        local interface=$(ip link | awk -F: '$0 !~ "ppp|lo|vbox|vir|wl|^[^0-9]"{print $2;getline}')
         local interface=$(for dev in $interface; do [[ ! -e /sys/class/net/"$dev"/wireless && $(grep 1 /sys/class/net/"$dev"/carrier) ]] && echo ${dev##*/}; done)
     fi
     if [[ $1 == "lo" ]]; then
@@ -637,7 +637,7 @@ ros_discovery_server()
         local interface=$(for dev in /sys/class/net/*; do [ -e "$dev"/wireless ] && echo ${dev##*/}; done)
     fi
     if [[ $1 == "ETH" ]]; then
-        local interface=$(ip link | awk -F: '$0 !~ "lo|vbox|vir|wl|^[^0-9]"{print $2;getline}')
+        local interface=$(ip link | awk -F: '$0 !~ "ppp|lo|vbox|vir|wl|^[^0-9]"{print $2;getline}')
         local interface=$(for dev in $interface; do [[ ! -e /sys/class/net/"$dev"/wireless && $(grep 1 /sys/class/net/"$dev"/carrier) ]] && echo ${dev##*/}; done)
     fi
 
