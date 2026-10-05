@@ -465,6 +465,7 @@ ros_restrict()
         unset ROS_DISCOVERY_SERVER
         unset ROS_DOMAIN_ID
         unset FASTRTPS_DEFAULT_PROFILES_FILE
+        unset FASTDDS_DEFAULT_PROFILES_FILE
 
         # https://answers.ros.org/question/365051/using-ros2-offline-ros_localhost_only1/
         
@@ -545,7 +546,11 @@ ros_restrict()
         </participant>
     </profiles>" > /tmp/fastrtps_interface_restriction_$USER.xml
     # tell where to look
-    export FASTRTPS_DEFAULT_PROFILES_FILE=/tmp/fastrtps_interface_restriction_$USER.xml
+    if [[ $ROS_DISTRO < "lyrical" ]]; then
+        export FASTRTPS_DEFAULT_PROFILES_FILE=/tmp/fastrtps_interface_restriction_$USER.xml
+    else
+        export FASTDDS_DEFAULT_PROFILES_FILE=/tmp/fastrtps_interface_restriction_$USER.xml
+    fi
 
     # Cyclone DDS https://dds-demonstrators.readthedocs.io/en/latest/Teams/1.Hurricane/setupCycloneDDS.html
     if [[ -n $legacy_cyclonedds ]]; then
@@ -748,7 +753,7 @@ ros_master()
         local interface=$(for dev in /sys/class/net/*; do [ -e "$dev"/wireless ] && echo ${dev##*/}; done)
     fi
     if [[ $1 == "ETH" ]]; then
-        local interface=$(ip link | awk -F: '$0 !~ "lo|vbox|vir|wl|^[^0-9]"{print $2;getline}')
+        local interface=$(ip link | awk -F: '$0 !~ "ppp|lo|vbox|vir|wl|^[^0-9]"{print $2;getline}')
         local interface=$(for dev in $interface; do [[ ! -e /sys/class/net/"$dev"/wireless && $(grep 1 /sys/class/net/"$dev"/carrier) ]] && echo ${dev##*/}; done)
     fi
 
