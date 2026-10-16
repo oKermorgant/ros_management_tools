@@ -232,7 +232,7 @@ for line in cmake:
         line = line.replace(' (', '(')
     
     if 'project(' in line:
-        package = extract(line)
+        package = extract(line).split()[0]
     elif 'CMAKE_BUILD_TYPE' in line and 'set' in line:
         if line.index('set') < line.index('CMAKE_BUILD_TYPE'):
             try:
